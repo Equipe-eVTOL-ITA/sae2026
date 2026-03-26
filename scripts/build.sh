@@ -11,6 +11,8 @@ if [ $# -ne 1 ]; then
     echo "Targets:"
     echo "  all           — build everything"
     echo "  deps          — build only dependencies (px4_msgs, fsm, custom_msgs, etc.)"
+    echo "  stdstates     — build only stdstates"
+    echo "  drone_lib     — build only drone_lib"
     echo "  mission_1     — build only mission_1"
     exit 1
 fi
@@ -36,6 +38,20 @@ case $1 in
             --symlink-install \
             --cmake-args "-DCMAKE_BUILD_TYPE=$BUILD_TYPE" \
             --packages-up-to stdstates \
+            --executor sequential
+        ;;
+    stdstates)
+        colcon build \
+            --symlink-install \
+            --cmake-args "-DCMAKE_BUILD_TYPE=$BUILD_TYPE" "-DCMAKE_EXPORT_COMPILE_COMMANDS=On" \
+            --packages-select stdstates \
+            --executor sequential
+        ;;
+    drone_lib)
+        colcon build \
+            --symlink-install \
+            --cmake-args "-DCMAKE_BUILD_TYPE=$BUILD_TYPE" "-DCMAKE_EXPORT_COMPILE_COMMANDS=On" \
+            --packages-select drone_lib \
             --executor sequential
         ;;
     mission_1)

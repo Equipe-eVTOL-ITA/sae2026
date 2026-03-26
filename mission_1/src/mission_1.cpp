@@ -9,18 +9,18 @@
 #include "drone/Drone.hpp"
 
 // Standard states from stdstates
+#include "stdstates/arming_state.hpp"
 #include "stdstates/takeoff_state.hpp"
 #include "stdstates/landing_state.hpp"
 
-// Mission-specific states (add your custom states here)
-// #include "mission_1/my_custom_state.hpp"
+// Mission-specific states 
+// ...
 
 
 /**
  * @brief Mission 1 FSM — defines states and transitions.
  *
  * This class sets up the finite state machine for Mission 1.
- * Add your mission-specific states and transitions here.
  */
 class Mission1FSM : public fsm::FSM {
 public:
@@ -42,20 +42,19 @@ public:
         }
 
         // ===================== STATES =====================
-        // Register FSM states — add your custom states below
-
+        this->add_state("ARMING", std::make_unique<ArmingState>());
         this->add_state("TAKEOFF", std::make_unique<TakeoffState>());
         this->add_state("LANDING", std::make_unique<LandingState>());
 
-        // Example: add mission-specific states
-        // this->add_state("SEARCH", std::make_unique<SearchState>());
-        // this->add_state("ALIGN", std::make_unique<AlignState>());
-
         // ================== TRANSITIONS ===================
         // Define transitions: {outcome, next_state}
+        this->add_transitions("ARMING", {
+            {"ARMED", "TAKEOFF"},
+            {"ERROR", "ERROR"}
+        });
 
         this->add_transitions("TAKEOFF", {
-            {"TAKEOFF COMPLETED", "LANDING"},   // TODO: change to your next state
+            {"TAKEOFF COMPLETED", "LANDING"},
             {"ERROR", "ERROR"}
         });
 
@@ -64,14 +63,6 @@ public:
             {"ERROR", "ERROR"}
         });
 
-        // Example: more transitions
-        // this->add_transitions("SEARCH", {
-        //     {"TARGET FOUND", "ALIGN"},
-        //     {"SEARCH ENDED", "LANDING"},
-        //     {"ERROR", "ERROR"}
-        // });
-
-        // Set the initial state
         this->set_initial_state("TAKEOFF");
     }
 };
@@ -105,11 +96,6 @@ public:
 
             // Movement
             {"max_horizontal_velocity", 1.5},
-
-            // PID (for custom states)
-            {"pid_kp", 1.0},
-            {"pid_ki", 0.0},
-            {"pid_kd", 0.5},
         };
 
         auto params = declareAndGetParameters(default_params);
