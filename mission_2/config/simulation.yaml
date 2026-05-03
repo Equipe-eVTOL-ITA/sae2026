@@ -1,0 +1,15 @@
+# Mission 2 — Simulation parameters
+# These are loaded by ROS2 launch files via:
+#   Node(parameters=[os.path.join(pkg_dir, "config", "simulation.yaml")])
+
+mission_2_node:
+  ros__parameters:
+    # FSM parameters
+    takeoff_height: -2.0
+    position_tolerance: 0.2
+    max_vertical_velocity: 1.0
+    max_horizontal_velocity: 1.5
+
+    # Landing parameters
+    landing_velocity_max: 0.5
+    landing_velocity_min: 0.1

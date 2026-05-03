@@ -5,7 +5,7 @@ if [ -f install/setup.bash ]; then
     source install/setup.bash
 fi
 
-export GZ_SIM_RESOURCE_PATH=$GZ_SIM_RESOURCE_PATH:~/PX4-Autopilot/Tools/simulation/gz/models:~/PX4-Autopilot/Tools/simulation/gz/worlds
+export GZ_SIM_RESOURCE_PATH=$GZ_SIM_RESOURCE_PATH:~/PX4-Autopilot/Tools/simulation/gz/models:~/PX4-Autopilot/Tools/simulation/gz/worlds:~/PX4-gazebo-models/models:~/PX4-gazebo-models/worlds
 
 cd ~/PX4-Autopilot
 
@@ -14,14 +14,17 @@ PX4_GZ_WORLD=$1
 
 case $1 in
     sae1)
+        PX4_GZ_WORLD=sae1_26
         PX4_GZ_MODEL_POSE="0.0, 0.0, 0.05, 0.0, 0.0, 0.0"
         PX4_SIM_MODEL=x500_sae
         ;;
     sae2)
+        PX4_GZ_WORLD=sae2_26
         PX4_GZ_MODEL_POSE="0.0, 0.0, 0.05, 0.0, 0.0, 0.0"
         PX4_SIM_MODEL=x500_sae
         ;;
     sae3)
+        PX4_GZ_WORLD=sae3_26
         PX4_GZ_MODEL_POSE="0.0, 0.0, 0.05, 0.0, 0.0, 0.0"
         PX4_SIM_MODEL=x500_sae
         ;;
