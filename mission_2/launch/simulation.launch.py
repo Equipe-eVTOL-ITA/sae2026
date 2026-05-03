@@ -40,10 +40,18 @@ def generate_launch_description():
         output='screen'
     )
 
+    # Ball Detector (Computer Vision Node)
+    ball_detector_node = Node(
+        package='ball_detector',
+        executable='ball_detector_node',
+        output='screen'
+    )
+
     delayed_fsm_node = TimerAction(period=5.0, actions=[fsm_node])
 
     return LaunchDescription([
         exec_arg,
         system_health_node,
+        ball_detector_node,
         delayed_fsm_node
     ])

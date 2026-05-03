@@ -21,6 +21,7 @@ public:
 
         yaw_rate_ = *blackboard.get<float>("search_yaw_rate");
         target_yaw_ = drone_->getOrientation()[2];
+        start_position_ = drone_->getLocalPosition();
     }
 
     std::string act(fsm::Blackboard &blackboard) override {
@@ -32,18 +33,18 @@ public:
         }
 
         if (is_detected) {
-            // Stop drone
-            move_local_by_waypoint(drone_, drone_->getLocalPosition(), 0.0f);
+            move_local_by_waypoint(drone_, drone_->getLocalPosition(), 0.0f); // parar o drone
             drone_->log("Ball detected!");
             return "BALL_FOUND";
         }
 
-        // Spin in yaw using position-based rotation
-        target_yaw_ += yaw_rate_ * 0.1f; // assuming approx 10Hz tick rate
+        // rodando o yaw do drone de forma suave usando controle de posição do PX4
+        target_yaw_ += yaw_rate_ * 0.1f; // considerando um tick de 10 Hz
         if (target_yaw_ > M_PI) target_yaw_ -= 2.0 * M_PI;
         if (target_yaw_ < -M_PI) target_yaw_ += 2.0 * M_PI;
         
-        rotateYaw(drone_, target_yaw_, yaw_rate_);
+        // Mantém a posição inicial fixa e gira o yaw
+        move_local_by_waypoint(drone_, start_position_, 0.5f, 0.1f, target_yaw_);
 
         return "";
     }
@@ -52,4 +53,5 @@ private:
     std::shared_ptr<Drone> drone_;
     float yaw_rate_;
     float target_yaw_;
+    Eigen::Vector3d start_position_;
 };

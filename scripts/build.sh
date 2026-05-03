@@ -14,6 +14,8 @@ if [ $# -ne 1 ]; then
     echo "  stdstates     — build only stdstates"
     echo "  drone_lib     — build only drone_lib"
     echo "  mission_1     — build only mission_1"
+    echo "  mission_2     — build only mission_2"
+    echo "  mission_3     — build only mission_3"
     exit 1
 fi
 
@@ -59,6 +61,20 @@ case $1 in
             --symlink-install \
             --cmake-args "-DCMAKE_BUILD_TYPE=$BUILD_TYPE" "-DCMAKE_EXPORT_COMPILE_COMMANDS=On" \
             --packages-select mission_1 \
+            --executor sequential
+        ;;
+    mission_2)
+        colcon build \
+            --symlink-install \
+            --cmake-args "-DCMAKE_BUILD_TYPE=$BUILD_TYPE" "-DCMAKE_EXPORT_COMPILE_COMMANDS=On" \
+            --packages-select mission_2 \
+            --executor sequential
+        ;;
+    mission_3)
+        colcon build \
+            --symlink-install \
+            --cmake-args "-DCMAKE_BUILD_TYPE=$BUILD_TYPE" "-DCMAKE_EXPORT_COMPILE_COMMANDS=On" \
+            --packages-select mission_3 \
             --executor sequential
         ;;
     *)
