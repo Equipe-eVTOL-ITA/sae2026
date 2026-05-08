@@ -128,7 +128,8 @@ public:
 
             // Mission 2 Parameters
             {"search_yaw_rate",        0.5},
-            {"ball_trigger_distance",  1.5},
+            {"search_radius",          3.0},
+            {"ball_trigger_score",     5000.0},
             {"ball_kp_x", 0.5}, {"ball_ki_x", 0.0}, {"ball_kd_x", 0.1},
             {"ball_kp_y", 0.5}, {"ball_ki_y", 0.0}, {"ball_kd_y", 0.1},
             {"rise_delta_z", 2.0},
@@ -153,9 +154,9 @@ public:
             "ball_detection", 10,
             [this](const custom_msgs::msg::BallDetection::SharedPtr msg) {
                 fsm_->blackboard_set<bool>("ball_is_detected", msg->is_detected);
-                fsm_->blackboard_set<float>("ball_distance", msg->distance_estimate);
-                fsm_->blackboard_set<float>("ball_center_x", msg->center_position.x);
-                fsm_->blackboard_set<float>("ball_center_y", msg->center_position.y);
+                fsm_->blackboard_set<float>("ball_target_score", msg->target_score);
+                fsm_->blackboard_set<float>("ball_x_error", msg->x_error);
+                fsm_->blackboard_set<float>("ball_y_error", msg->y_error);
             }
         );
 

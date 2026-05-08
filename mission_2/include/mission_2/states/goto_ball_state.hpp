@@ -23,7 +23,7 @@ public:
         drone_->log("");
         drone_->log("STATE: GOTO_BALL");
 
-        trigger_distance_ = *blackboard.get<float>("ball_trigger_distance");
+        trigger_score_ = *blackboard.get<float>("ball_trigger_score");
         
         // PIDs
         pid_x_ = PidController(
@@ -55,37 +55,38 @@ public:
             return "BALL_LOST";
         }
 
-        float dist = 999.0f;
-        float center_x = 0.0f;
-        float center_y = 0.0f;
+        float score = 0.0f;
+        float x_error = 0.0f;
+        float y_error = 0.0f;
 
-        if (blackboard.contains("ball_distance")) {
-            dist = *blackboard.get<float>("ball_distance");
+        if (blackboard.contains("ball_target_score")) {
+            score = *blackboard.get<float>("ball_target_score");
         }
-        if (blackboard.contains("ball_center_x")) {
-            center_x = *blackboard.get<float>("ball_center_x");
+        if (blackboard.contains("ball_x_error")) {
+            x_error = *blackboard.get<float>("ball_x_error");
         }
-        if (blackboard.contains("ball_center_y")) {
-            center_y = *blackboard.get<float>("ball_center_y");
+        if (blackboard.contains("ball_y_error")) {
+            y_error = *blackboard.get<float>("ball_y_error");
         }
 
-        if (dist > 0.0f && dist <= trigger_distance_) {
+        if (score >= trigger_score_) {
             move_local_by_waypoint(drone_, drone_->getLocalPosition(), 0.0f);
-            drone_->log("Reached ball trigger distance.");
+            drone_->log("Reached ball trigger score.");
             return "REACHED";
         }
 
-        float vx = pid_x_.compute(center_x); 
-        float vy = pid_y_.compute(center_y);
+        float vy_lateral = pid_x_.compute(x_error); 
+        float vz_vertical = pid_y_.compute(y_error);
 
-        // Treat vx and vy as position steps (delta)
-        Eigen::Vector3d local_delta(vx, vy, 0.0);
+        // Treat vx as a constant approach velocity, and vy, vz as corrections
+        float vx_forward = 0.5f; 
+        Eigen::Vector3d local_delta(vx_forward, vy_lateral, vz_vertical);
         Eigen::Vector3d world_delta = adjust_velocity_using_yaw(local_delta, drone_->getOrientation().z());
 
         Eigen::Vector3d target_pos = drone_->getLocalPosition() + world_delta;
         
         // speed doesn't matter much if delta is small, move_local_by_waypoint will move step by step
-        float speed = std::sqrt(vx*vx + vy*vy);
+        float speed = std::sqrt(vx_forward*vx_forward + vy_lateral*vy_lateral + vz_vertical*vz_vertical);
         if (speed < 0.1f) speed = 0.1f;
 
         move_local_by_waypoint(drone_, target_pos, speed);
@@ -95,7 +96,7 @@ public:
 
 private:
     std::shared_ptr<Drone> drone_;
-    float trigger_distance_;
+    float trigger_score_;
     PidController pid_x_;
     PidController pid_y_;
 };
