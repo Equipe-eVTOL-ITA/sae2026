@@ -140,7 +140,7 @@ public:
             {"align_tolerance_yaw",    0.05},
             {"align_kp_y", 0.5}, {"align_ki_y", 0.0}, {"align_kd_y", 0.1},
             {"align_kp_yaw", 0.5}, {"align_ki_yaw", 0.0}, {"align_kd_yaw", 0.1},
-            {"hook_script_path",       std::string("/home/marconipavan/evtol/dev/scripts/drop_hook.py")},
+            {"hook_script_path",       std::string("~/evtol/dev/scripts/drop_hook.py")},
             {"target_x", 0.0},
             {"target_y", 0.0},
             {"target_z", -2.0}, // Flight altitude to return
