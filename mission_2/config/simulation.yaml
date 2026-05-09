@@ -22,6 +22,7 @@ mission_2_node:
     search_yaw_rate: 0.5
     search_radius: 3.0
     ball_trigger_score: 5000.0
+    ball_approach_velocity: 0.2
     ball_kp_x: 0.5
     ball_ki_x: 0.0
     ball_kd_x: 0.1

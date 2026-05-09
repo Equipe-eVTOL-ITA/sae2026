@@ -6,6 +6,8 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <custom_msgs/msg/ball_detection.hpp>
+#include <geometry_msgs/msg/point_stamped.hpp>
+#include <std_msgs/msg/float64.hpp>
 
 #include "fsm/fsm.hpp"
 #include "drone/Drone.hpp"
@@ -130,6 +132,7 @@ public:
             {"search_yaw_rate",        0.5},
             {"search_radius",          3.0},
             {"ball_trigger_score",     5000.0},
+            {"ball_approach_velocity", 0.2},
             {"ball_kp_x", 0.5}, {"ball_ki_x", 0.0}, {"ball_kd_x", 0.1},
             {"ball_kp_y", 0.5}, {"ball_ki_y", 0.0}, {"ball_kd_y", 0.1},
             {"rise_delta_z", 2.0},
@@ -157,6 +160,25 @@ public:
                 fsm_->blackboard_set<float>("ball_target_score", msg->target_score);
                 fsm_->blackboard_set<float>("ball_x_error", msg->x_error);
                 fsm_->blackboard_set<float>("ball_y_error", msg->y_error);
+            }
+        );
+
+        // subscriber para a detecção da mangueira (posição normalizada e ângulo)
+        hose_pos_sub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(
+            "/mangueira/position", 10,
+            [this](const geometry_msgs::msg::PointStamped::SharedPtr msg) {
+                // Expect normalized coordinates [0,1]; convert to offset centered at 0.0
+                float offset_y = static_cast<float>(msg->point.y) - 0.5f;
+                fsm_->blackboard_set<float>("hose_offset_y", offset_y);
+            }
+        );
+
+        hose_angle_sub_ = this->create_subscription<std_msgs::msg::Float64>(
+            "/mangueira/angle", 10,
+            [this](const std_msgs::msg::Float64::SharedPtr msg) {
+                // Angle is expected in radians ([-pi/2, pi/2])
+                float angle = static_cast<float>(msg->data);
+                fsm_->blackboard_set<float>("hose_angle_error", angle);
             }
         );
 
@@ -202,6 +224,8 @@ private:
     std::unique_ptr<Mission2FSM> fsm_;
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Subscription<custom_msgs::msg::BallDetection>::SharedPtr ball_sub_;
+    rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr hose_pos_sub_;
+    rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr hose_angle_sub_;
 };
 
 

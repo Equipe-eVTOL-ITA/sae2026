@@ -40,6 +40,22 @@ public:
 
         pid_x_.reset();
         pid_y_.reset();
+
+        lost_detection_count_ = 0;
+        max_lost_detection_count_ = 5;
+        if (blackboard.contains("ball_lost_frames")) {
+            max_lost_detection_count_ = *blackboard.get<int>("ball_lost_frames");
+        }
+        if (max_lost_detection_count_ < 1) {
+            max_lost_detection_count_ = 1;
+        }
+        // Altitude-first phase: start not aligned
+        altitude_aligned_phase_ = false;
+        alt_tolerance_ = 0.05f;
+        if (blackboard.contains("ball_alt_tolerance")) {
+            alt_tolerance_ = *blackboard.get<float>("ball_alt_tolerance");
+            if (alt_tolerance_ < 0.0f) alt_tolerance_ = 0.0f;
+        }
     }
 
     std::string act(fsm::Blackboard &blackboard) override {
@@ -51,9 +67,15 @@ public:
         }
 
         if (!is_detected) {
+            ++lost_detection_count_;
             move_local_by_waypoint(drone_, drone_->getLocalPosition(), 0.0f);
+            if (lost_detection_count_ < max_lost_detection_count_) {
+                return "";
+            }
             return "BALL_LOST";
         }
+
+        lost_detection_count_ = 0;
 
         float score = 0.0f;
         float x_error = 0.0f;
@@ -75,18 +97,49 @@ public:
             return "REACHED";
         }
 
-        float vy_lateral = pid_x_.compute(x_error); 
-        float vz_vertical = pid_y_.compute(y_error);
+        // Altitude-first behavior:
+        // 1) Align altitude (image y) until within tolerance
+        // 2) Then align horizontally (image x) while approaching forward
 
-        // Treat vx as a constant approach velocity, and vy, vz as corrections
-        float vx_forward = 0.5f; 
+        // Compute lateral and vertical corrections from PIDs
+        // Invert lateral sign so positive image x_error (ball to right)
+        // produces positive local y (right) movement.
+        float vy_lateral = -pid_x_.compute(x_error);
+        float vz_vertical = pid_y_.compute(-y_error); // FRD sign correction
+
+        if (!altitude_aligned_phase_) {
+            // Only apply vertical corrections while keeping horizontal movement zero
+            Eigen::Vector3d local_delta(0.0f, 0.0f, vz_vertical);
+            Eigen::Vector3d world_delta = adjust_velocity_using_yaw(local_delta, drone_->getOrientation().z());
+            Eigen::Vector3d target_pos = drone_->getLocalPosition() + world_delta;
+
+            float speed = std::fabs(vz_vertical);
+            if (speed < 0.05f) speed = 0.05f;
+            move_local_by_waypoint(drone_, target_pos, speed);
+
+            if (std::fabs(y_error) <= alt_tolerance_) {
+                altitude_aligned_phase_ = true;
+                pid_x_.reset();
+                pid_y_.reset();
+            }
+
+            return "";
+        }
+
+        // Horizontal alignment phase: forward + lateral corrections. Keep vertical stable.
+        float vx_forward = 0.5f;
+        if (blackboard.contains("ball_approach_velocity")) {
+            vx_forward = *blackboard.get<float>("ball_approach_velocity");
+        }
+
+        // Zero vertical correction now that altitude is aligned
+        vz_vertical = 0.0f;
+
         Eigen::Vector3d local_delta(vx_forward, vy_lateral, vz_vertical);
         Eigen::Vector3d world_delta = adjust_velocity_using_yaw(local_delta, drone_->getOrientation().z());
-
         Eigen::Vector3d target_pos = drone_->getLocalPosition() + world_delta;
-        
-        // speed doesn't matter much if delta is small, move_local_by_waypoint will move step by step
-        float speed = std::sqrt(vx_forward*vx_forward + vy_lateral*vy_lateral + vz_vertical*vz_vertical);
+
+        float speed = std::sqrt(vx_forward*vx_forward + vy_lateral*vy_lateral);
         if (speed < 0.1f) speed = 0.1f;
 
         move_local_by_waypoint(drone_, target_pos, speed);
@@ -99,4 +152,8 @@ private:
     float trigger_score_;
     PidController pid_x_;
     PidController pid_y_;
+    int lost_detection_count_;
+    int max_lost_detection_count_;
+    bool altitude_aligned_phase_;
+    float alt_tolerance_;
 };

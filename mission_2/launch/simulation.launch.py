@@ -47,11 +47,21 @@ def generate_launch_description():
         output='screen'
     )
 
+    # Hose (Mangueira) Detector
+    mangueira_detector_config = os.path.join(pkg_mission_2, "config", "mangueira_detector.yaml")
+    mangueira_detector_node = Node(
+        package='mangueira_detector',
+        executable='mangueira_detector_node',
+        parameters=[mangueira_detector_config],
+        output='screen'
+    )
+
     delayed_fsm_node = TimerAction(period=5.0, actions=[fsm_node])
 
     return LaunchDescription([
         exec_arg,
         system_health_node,
         ball_detector_node,
+        mangueira_detector_node,
         delayed_fsm_node
     ])
