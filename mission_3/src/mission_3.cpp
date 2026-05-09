@@ -12,12 +12,15 @@
 #include <std_msgs/msg/string.hpp>
 #include <custom_msgs/msg/base_detection.hpp>
 #include <geometry_msgs/msg/point.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <nav_msgs/msg/path.hpp>
 
 // Standard states from stdstates
 #include "stdstates/arming_state.hpp"
 #include "stdstates/takeoff_state.hpp"
 #include "stdstates/landing_state.hpp"
 #include "mission_3/align_state.hpp"
+#include "mission_3/approach_state.hpp"
 #include "mission_3/goto_state.hpp"
 #include "mission_3/photo_state.hpp"
 
@@ -52,12 +55,13 @@ public:
         // states
         
         
-        this->add_state("ARMING", std::make_unique<ArmingState>());
-        this->add_state("TAKEOFF", std::make_unique<TakeoffState>());
-        this->add_state("GOTO",std::make_unique<GoToState>());
-        this->add_state("ALIGN",std::make_unique<AlignState>());
-        this->add_state("PHOTO",std::make_unique<PhotoState>());
-        this->add_state("LANDING", std::make_unique<LandingState>());
+        this->add_state("ARMING",   std::make_unique<ArmingState>());
+        this->add_state("TAKEOFF",  std::make_unique<TakeoffState>());
+        this->add_state("GOTO",     std::make_unique<GoToState>());
+        this->add_state("ALIGN",    std::make_unique<AlignState>());
+        this->add_state("APPROACH", std::make_unique<ApproachState>());
+        this->add_state("PHOTO",    std::make_unique<PhotoState>());
+        this->add_state("LANDING",  std::make_unique<LandingState>());
 
         // transitions
 
@@ -78,8 +82,13 @@ public:
         });
 
         this->add_transitions("ALIGN", {
-            {"ALIGNED", "PHOTO"},
-            {"ERROR","ERROR"}
+            {"ALIGNED", "APPROACH"},
+            {"ERROR",   "ERROR"}
+        });
+
+        this->add_transitions("APPROACH", {
+            {"AT_ALTITUDE", "PHOTO"},
+            {"ERROR",       "ERROR"}
         });
 
         this->add_transitions("PHOTO", {
@@ -121,32 +130,39 @@ public:
             {"max_horizontal_velocity", 0.5},
             {"position_tolerance_mov", 0.1},
 
-            //align
-            {"position_tolerance_align",    0.10},
-            {"max_horizontal_velocity_align",0.4},
+            // ALIGN
+            {"position_tolerance_align",     0.10},
+            {"max_horizontal_velocity_align", 0.3},
+            {"align_kp",                     0.5},
+            {"align_min_detections",         10.0},
+
+            // APPROACH
+            {"manometer_approach_altitude",  -1.0},
+            {"approach_velocity",            0.3},
+            {"approach_hold_ticks",          20.0},
 
             //limit
             {"limit_value",50.0},
 
-            //Waypoint 1 
-            {"x1", 2.0},
-            {"y1", -6.0},
-            {"z1", -2.0},
-                          
-            //Waypoint 2 
+            //Waypoint 1
+            {"x1", -6.0},
+            {"y1", -2.0},
+            {"z1", -2.2},
+
+            //Waypoint 2
             {"x2", -2.5},
             {"y2", 0.0},
-            {"z2", -2.0},
+            {"z2", -2.2},
 
-            //Waypoint 3 
+            //Waypoint 3
             {"x3", 5.0},
             {"y3", 2.5},
-            {"z3", -2.0},
+            {"z3", -2.2},
 
             //Landing point
             {"x4", 5.0},
             {"y4", 2.5},
-            {"z4", -2.0}
+            {"z4", -2.2}
 
         };
 
@@ -195,6 +211,10 @@ public:
         );
 
 
+        // Trajectory publisher for RViz (nav_msgs/Path in ENU frame)
+        path_pub_ = this->create_publisher<nav_msgs::msg::Path>("/drone_trajectory", 10);
+        trajectory_.header.frame_id = "map";
+
         // Run FSM at 20Hz (50ms period)
         timer_ = this->create_wall_timer(
             std::chrono::milliseconds(50),
@@ -209,6 +229,19 @@ public:
 private:
 
     void executeFSM() {
+        // Append position to trajectory and publish (NED → ENU for RViz)
+        auto pos = drone_->getLocalPosition();
+        geometry_msgs::msg::PoseStamped ps;
+        ps.header.stamp    = this->now();
+        ps.header.frame_id = "map";
+        ps.pose.position.x =  (float)pos.y();   // East  = NED y
+        ps.pose.position.y =  (float)pos.x();   // North = NED x
+        ps.pose.position.z = -(float)pos.z();   // Up    = -NED z
+        ps.pose.orientation.w = 1.0;
+        trajectory_.header.stamp = ps.header.stamp;
+        trajectory_.poses.push_back(ps);
+        path_pub_->publish(trajectory_);
+
         if (rclcpp::ok() && !fsm_->is_finished()) {
             fsm_->execute();
         } else {
@@ -246,6 +279,8 @@ private:
     rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr pressure_sub_;
     rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr pos_manometer_sub_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pressure_analysis_pub_;
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
+    nav_msgs::msg::Path trajectory_;
 };
 
 

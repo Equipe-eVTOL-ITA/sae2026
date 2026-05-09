@@ -32,11 +32,11 @@ public:
         if (drone_ == nullptr) return "ERROR";
         
         
-        drone_->setLocalPosition(position_photo_.x(),position_photo_.y(),position_photo_.y(),photo_yaw_);
+        drone_->setLocalPosition(position_photo_.x(), position_photo_.y(), position_photo_.z(), photo_yaw_);
 
         measured_pressure_ = *blackboard.get<float>("measured_pressure");
-        
-        if(measured_pressure_==-1){
+
+        if (measured_pressure_ < 0.0f) {
             return "";
         }
         else{

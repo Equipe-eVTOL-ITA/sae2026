@@ -8,9 +8,14 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument, TimerAction
 from launch.substitutions import LaunchConfiguration
+from launch.conditions import IfCondition
 import os
 from ament_index_python.packages import get_package_share_directory
 
+
+RVIZ_CONFIG = os.path.join(
+    os.path.dirname(__file__), '..', '..', '..', '..', 'sae2026', 'rviz', 'trajectory.rviz'
+)
 
 def generate_launch_description():
 
@@ -22,6 +27,11 @@ def generate_launch_description():
         "mission",
         default_value="mission_1",
         description="Executable that implements the mission FSM")
+
+    rviz_arg = DeclareLaunchArgument(
+        "rviz",
+        default_value="true",
+        description="Launch RViz2 for trajectory visualization")
 
     # System health monitor (from drone_lib)
     system_health_node = Node(
@@ -50,9 +60,19 @@ def generate_launch_description():
     )
 
 
+    rviz_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        arguments=['-d', RVIZ_CONFIG],
+        condition=IfCondition(LaunchConfiguration("rviz")),
+        output='screen'
+    )
+
     return LaunchDescription([
         exec_arg,
+        rviz_arg,
         system_health_node,
         bouncing_cv_node,
-        delayed_fsm_node
+        delayed_fsm_node,
+        rviz_node,
     ])

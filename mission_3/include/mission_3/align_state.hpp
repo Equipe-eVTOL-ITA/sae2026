@@ -1,99 +1,122 @@
 #pragma once
 
-#include <memory>  
-#include <map>      
-#include <variant>  
+#include <memory>
 #include <string>
+#include <cmath>
 #include <Eigen/Eigen>
-#include <cstdint>
-  
-#include "fsm/fsm.hpp" 
-#include "drone/Drone.hpp"          
 
+#include "fsm/fsm.hpp"
+#include "drone/Drone.hpp"
+
+/**
+ * Centers the drone over the manometer using normalized pixel error from
+ * /manometer_error.  Robust to intermittent detection: holds position on
+ * missed frames and only counts alignment when the detector is active.
+ *
+ * Blackboard reads:
+ *   "error_x"                       (float) — normalized [-1,1], NaN = not detected
+ *   "error_y"                       (float) — normalized [-1,1], NaN = not detected
+ *   "position_tolerance_align"      (float) — error magnitude threshold (default 0.10)
+ *   "max_horizontal_velocity_align" (float) — max correction speed m/s (default 0.3)
+ *   "align_kp"                      (float) — proportional gain (default 0.5)
+ *   "align_min_detections"          (float) — consecutive aligned frames needed (default 10)
+ *
+ * Returns: "ALIGNED"
+ */
 class AlignState : public fsm::State {
 public:
-    AlignState() : fsm::State() {}
+    AlignState() : fsm::State(), aligned_counter_(0), miss_counter_(0), tick_(0) {}
 
     void on_enter(fsm::Blackboard &blackboard) override {
         drone_ = *blackboard.get<std::shared_ptr<Drone>>("drone");
-        if (drone_ == nullptr) return;
+        if (!drone_) return;
 
         drone_->log("");
         drone_->log("STATE: ALIGN");
 
-        max_horizontal_velocity_align_ =*blackboard.get<float>("max_horizontal_velocity_align");
-        position_tolerance_align_ = *blackboard.get<float>("position_tolerance_align");
+        tolerance_ = blackboard.contains("position_tolerance_align")
+            ? *blackboard.get<float>("position_tolerance_align") : 0.10f;
+        kp_ = blackboard.contains("align_kp")
+            ? *blackboard.get<float>("align_kp") : 0.5f;
+        max_vel_ = blackboard.contains("max_horizontal_velocity_align")
+            ? *blackboard.get<float>("max_horizontal_velocity_align") : 0.3f;
+        min_detections_ = blackboard.contains("align_min_detections")
+            ? static_cast<int>(*blackboard.get<float>("align_min_detections")) : 10;
 
-        pos_a_ = drone_->getLocalPosition();
-        initial_yaw_ = drone_->getOrientation()[2];
-        manometer_h_ = -1.7;
-        fx_=1554.95;
-        fy_=1545.72;
+        aligned_counter_ = 0;
+        miss_counter_    = 0;
+        tick_            = 0;
+        initial_yaw_     = drone_->getOrientation()[2];
 
-        if (drone_->getArmingState() != DronePX4::ARMING_STATE::ARMED) {
-            drone_->toOffboardSync();
-            drone_->armSync();
-        }
-
-        drone_->log("Initial Yaw: " + std::to_string(initial_yaw_));
+        drone_->log("kp=" + std::to_string(kp_)
+                    + " tol=" + std::to_string(tolerance_)
+                    + " need=" + std::to_string(min_detections_) + " frames");
     }
 
     std::string act(fsm::Blackboard &blackboard) override {
-        (void)blackboard;
+        if (!drone_) return "ERROR";
 
-        if (drone_ == nullptr) return "ERROR";
-       
-        // Re-arm if the drone somehow disarmed
-        
-        if (drone_->getArmingState() != DronePX4::ARMING_STATE::ARMED) {
-            drone_->log("Drone is not armed, arming again.");
-            drone_->toOffboardSync();
-            drone_->armSync();
+        auto pos = drone_->getLocalPosition();
+
+        float err_x = *blackboard.get<float>("error_x");
+        float err_y = *blackboard.get<float>("error_y");
+        bool detected = !std::isnan(err_x) && !std::isnan(err_y);
+
+        if (!detected) {
+            // Hold current position — no valid detection this tick
+            drone_->setLocalPosition(pos.x(), pos.y(), pos.z(), initial_yaw_);
+            // Reset alignment counter only after 3 consecutive missed frames
+            if (++miss_counter_ >= 3)
+                aligned_counter_ = 0;
+            if (tick_++ % 20 == 0)
+                drone_->log("ALIGN: no detection — holding (aligned="
+                            + std::to_string(aligned_counter_) + ")");
+            return "";
         }
 
-        pos_a_ = drone_->getLocalPosition();
-        
-        error_x_= *blackboard.get<float>("error_x");
-        error_y_= *blackboard.get<float>("error_y");
+        miss_counter_ = 0;
 
-        erro_x_camera_ = error_x_*std::abs(pos_a_.z()-manometer_h_)/fx_;
-        erro_y_camera_ = error_y_*std::abs(pos_a_.z()-manometer_h_)/fy_;
+        // P-controller: normalized camera error → NED velocity
+        //   camera +x (right)  → drone +Y (East)
+        //   camera +y (down)   → drone -X (South); top-of-image = forward → -err_y
+        float vx = -err_y * kp_;
+        float vy =  err_x * kp_;
+        vx = std::clamp(vx, -max_vel_, max_vel_);
+        vy = std::clamp(vy, -max_vel_, max_vel_);
 
+        // Position setpoint one FSM tick ahead
+        constexpr float dt = 0.05f;
+        drone_->setLocalPosition(
+            pos.x() + vx * dt,
+            pos.y() + vy * dt,
+            pos.z(),
+            initial_yaw_);
 
-        float current_yaw = drone_->getOrientation()[2];
-        float erro_mundo_x = -(erro_x_camera_ * sin(current_yaw)) - (erro_y_camera_ * cos(current_yaw));
-        float erro_mundo_y = (erro_x_camera_ * cos(current_yaw)) - (erro_y_camera_ * sin(current_yaw));
+        float err_mag = std::sqrt(err_x * err_x + err_y * err_y);
+        if (err_mag < tolerance_) {
+            ++aligned_counter_;
+        } else {
+            aligned_counter_ = 0;
+        }
 
+        if (tick_++ % 10 == 0)
+            drone_->log("ALIGN err=(" + std::to_string(err_x) + ","
+                        + std::to_string(err_y) + ") mag=" + std::to_string(err_mag)
+                        + " aligned=" + std::to_string(aligned_counter_)
+                        + "/" + std::to_string(min_detections_));
 
-        Eigen::Vector3d diff (erro_mundo_x,erro_mundo_y,0.0);
-
-        if (diff.norm() < position_tolerance_align_) {
-            drone_->log("manometro alinhado");
+        if (aligned_counter_ >= min_detections_) {
+            drone_->log("ALIGN: manometer centered!");
             return "ALIGNED";
         }
-        // Move toward goal with velocity clamping
-        Eigen::Vector3d little_goal = pos_a_ + (diff.norm() > max_horizontal_velocity_align_
-                                              ? diff.normalized() * max_horizontal_velocity_align_
-                                              : diff);
-
-        drone_->setLocalPosition(
-            little_goal.x(),
-            little_goal.y(),
-            little_goal.z(),
-            initial_yaw_);
 
         return "";
     }
 
 private:
     std::shared_ptr<Drone> drone_;
-    Eigen::Vector3d pos_a_, goal_a_, erro_;
+    float tolerance_, kp_, max_vel_;
     float initial_yaw_;
-    float position_tolerance_align_;
-    float max_horizontal_velocity_align_;
-    float error_x_;
-    float error_y_;
-    float manometer_h_;
-    float fx_,fy_;
-    float erro_x_camera_,erro_y_camera_;
+    int   min_detections_;
+    int   aligned_counter_, miss_counter_, tick_;
 };
