@@ -42,8 +42,17 @@ def generate_launch_description():
 
     delayed_fsm_node = TimerAction(period=5.0, actions=[fsm_node])
 
+    # Vision node
+    bouncing_cv_node = Node(
+        package='bouncing_detector',
+        executable='bouncing_detector_node',
+        output='screen'
+    )
+
+
     return LaunchDescription([
         exec_arg,
         system_health_node,
+        bouncing_cv_node,
         delayed_fsm_node
     ])

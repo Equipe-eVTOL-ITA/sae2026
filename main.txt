@@ -1,0 +1,1582 @@
+Instituto Tecnológico de Aeronáutica
+Equipe eVTOL ITA
+
+Relatório Técnico de Projeto
+Competição SAE EletroQuad 2026
+
+Autores:
+André do Prado e Assis
+Ângelo Marconi Pavan
+Henrique Brandão de Oliveira Póvoa
+Henrique Temponi Leite Cardoso
+Ian Codognotto Costa
+Jean Pedro Grossi Líbero
+Joel Rossato
+Leonardo Uchôa Alvarenga
+Miqueias Oliveira Pinheiro
+Murilo Hiroyuki Matsura
+Nicoly Eduarda de Paula Ferreira
+Otávio Alves Batista
+Paulo Sergio Bezerra Freitas Gouveia
+Rafael Sena Lima Sousa
+Yago Lôbo Ximenes
+
+São José dos Campos - SP
+
+Abril de 2026
+
+Conteúdo
+1 Introdução
+1.1 Objetivos . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+1.2 Premissas de Projeto . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+2
+2
+2
+
+2 Estratégia
+2.1 Visão geral . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+2.1.1 Parâmetros Operacionais . . . . . . . . . . . . . . . . . . . . . . . . . . .
+2.2 Estratégias Específicas por Missão . . . . . . . . . . . . . . . . . . . . . . . . . .
+2.2.1 Missão 1: Bouncing 2.0 . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+2.2.2 Missão 2: Hang the Right Wire . . . . . . . . . . . . . . . . . . . . . . .
+2.2.3 Missão 3: Faulty or Not? . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+3
+3
+3
+3
+3
+5
+6
+
+3 Componentes e Sistemas
+8
+3.1 Sensores . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+3.2 Equipamentos Eletrônicos . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+3.3 Computadores e Controladores . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+3.4 Frame e Suportes . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+3.5 Demais componentes . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+4 Montagem e Integração
+4.1 Diagrama do Sistema Elétrico . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.2 Montagem 3D e Configurações Modulares . . . . . . . . . . . . . . . . . . . . .
+4.2.1 short . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.2.2 Configuração para as Missões 1 e 3 (Sem Garra) . . . . . . . . . . . . . .
+4.2.3 Configuração para a Missão 2 (Com Garra) . . . . . . . . . . . . . . . .
+
+11
+11
+11
+12
+14
+15
+
+5 Sistema de Navegação
+5.1 Arquitetura de Software e Versionamento . . . . . . . . . . . . . . . . . . . . . .
+5.2 Fusão de Sensores e Posicionamento . . . . . . . . . . . . . . . . . . . . . . . . .
+5.3 Visão Computacional . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.3.1 Modelo Pinhole . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.3.2 Detecção de Bases . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.3.3 Detecção de Marcadores ArUco . . . . . . . . . . . . . . . . . . . . . . .
+5.3.4 Detecção de Formas Geométricas . . . . . . . . . . . . . . . . . . . . . .
+5.3.5 Detecção de Números . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.3.6 Detecção da Esfera Laranja . . . . . . . . . . . . . . . . . . . . . . . . .
+5.3.7 Detecção da Mangueira . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.3.8 Detecção da Indicação do Manômetro . . . . . . . . . . . . . . . . . . . .
+5.4 Máquinas de Estados das Missões . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.4.1 Estados Comuns . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.5 Camadas de Segurança (Failsafe e Geofence) . . . . . . . . . . . . . . . . . . . .
+
+16
+16
+16
+17
+17
+20
+21
+21
+22
+23
+23
+24
+27
+28
+30
+
+6 Testes e Validação
+6.1 Testes dos Sistemas de Segurança . . . . . . . . . . . . . . . . . . . . . . . . . .
+6.2 Análise de Vibração e Integridade do Frame . . . . . . . . . . . . . . . . . . . .
+6.3 Rejeição a Perturbações Externas . . . . . . . . . . . . . . . . . . . . . . . . . .
+6.4 Bateria e Autonomia . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+31
+31
+31
+32
+32
+
+7 Conclusão
+
+33
+1
+
+1
+
+Introdução
+
+O emprego de veículos aéreos não tripulados (VANTs) em missões de voo autônomo tem
+se consolidado como uma solução tecnológica de alto impacto em diversos setores da indústria.
+Enquanto a maioria das operações atuais ainda depende do controle manual via rádio, o amadurecimento de processadores embarcados e o avanço dos algoritmos de visão computacional
+têm viabilizado o desenvolvimento de aeronaves capazes de executar tarefas complexas sem
+qualquer intervenção humana direta. É nesse cenário de transição tecnológica que se insere a
+competição SAE EletroQuad 2026, um evento projetado para fomentar o desenvolvimento de
+inovações voltadas para o voo autônomo de drones de asas rotativas, simulando desafios reais
+da engenharia, como a inspeção de estruturas e a interação física com linhas de transmissão.
+Para enfrentar os desafios operacionais e sistêmicos propostos pelo edital, este relatório detalha o projeto desenvolvido pela equipe eVTOL ITA. O documento descreve de forma abrangente
+as escolhas de dimensionamento estrutural, a integração de hardware e software, as estratégias
+de controle baseadas em Máquinas de Estados Finitos (FSM) e os subsistemas de percepção
+espacial adotados para garantir o sucesso nas missões Bouncing 2.0, Hang the Right Wire e
+Faulty or Not?.
+
+1.1
+
+Objetivos
+
+O objetivo central da equipe consiste em projetar e validar um sistema robótico aéreo
+autônomo altamente confiável, aprofundando o domínio técnico dos membros nas áreas de
+engenharia de sistemas, controle de voo em malha fechada e inteligência artificial. O trabalho
+visa promover a integração multidisciplinar entre os estudantes e seus orientadores, consolidando
+competências práticas que vão desde o projeto mecânico até a implementação de middlewares
+de comunicação, como o ROS 2.
+Além do aspecto tecnológico, a participação na competição almeja estimular atitudes éticas e
+profissionais durante todo o ciclo de desenvolvimento. O projeto busca reforçar a capacidade de
+liderança, o trabalho em equipe e o gerenciamento de recursos, favorecendo a adoção de práticas
+rigorosas e inovadoras na concepção, implementação e validação das soluções de engenharia.
+
+1.2
+
+Premissas de Projeto
+
+Visando otimizar a logística, reduzir a complexidade de manutenção e garantir a máxima
+confiabilidade operacional, a equipe estabeleceu como premissa fundamental a utilização de
+uma única aeronave para todas as etapas da competição. Em estrita conformidade com o
+edital [2], adotou-se um frame padronizado da classe S500.
+Para contornar as diferentes exigências de cada missão que variam desde navegação puramente visual até a interação mecânica estrita com o ambiente a arquitetura do drone foi concebida de forma inteiramente modular. Essa modularidade abrange tanto o hardware (permitindo
+a rápida instalação ou remoção de sensores e mecanismos de soltura) quanto o software (com lógicas de decisão independentes acionadas conforme a necessidade). As escolhas de componentes
+priorizaram equipamentos robustos, com alta disponibilidade de integração e que oferecessem
+redundância em voo, garantindo que o sistema central de controle e propulsão permanecesse
+inalterado e seguro ao longo de todo o evento.
+
+2
+
+2
+
+Estratégia
+
+2.1
+
+Visão geral
+
+Para a execução de cada uma das missões foi projetada uma Máquina de Estados Finita
+(FSM - Finite State Machine), a qual controla as ações do drone por estados bem definidos
+com comportamentos característicos que, ao completados, proporcionam a execução correta da
+missão. Cabe ressaltar a implementação de um mecanismo global de segurança: a partir de
+qualquer estado, existe uma transição prioritária para o modo de pouso de emergência (Safe
+Landing). Esta transição é acionada em caso de falhas críticas de hardware ou software, como
+a violação do limite de voo (geofence) ou a detecção de tensão das baterias abaixo do limiar
+operacional.
+A arquitetura de máquina de estados finita foi escolhida como modelo de controle para
+todas as missões por apresentar várias vantagens técnicas comprovadas: (1) semanticamente
+clara para implementação em firmware embarcado com recursos limitados; (2) determinística
+e previsível, facilitando testes de validação; (3) simplifica tratamento de transições de emergência e falhas críticas através de priorização de estados; (4) permite reutilização de padrões
+de estado comum entre missões (Takeoff, Landing, etc.), reduzindo complexidade e tempo de
+desenvolvimento.
+2.1.1
+
+Parâmetros Operacionais
+
+Os parâmetros operacionais das máquinas de estado foram calibrados empiricamente durante testes em laboratório e campo. Os principais parâmetros utilizados destas FSMs são:
+• Altura de referência de cruzeiro (h): altura na qual o drone realiza operações de busca e
+navegação;
+• Tolerância de altitude (ϵ): margem aceitável de desvio para o alcance de altitudes de
+referência;
+• Limite máximo de busca (zmax ): altitude máxima permitida para operações de busca
+visual;
+• Distância máxima até a esfera laranja: limite de aproximação do drone até a esfera laranja;
+• Margem de tolerância de alinhamento: erro posicional máximo aceitável em operações de
+aproximação e pouso.
+
+2.2
+
+Estratégias Específicas por Missão
+
+2.2.1
+
+Missão 1: Bouncing 2.0
+
+Inicialmente, a aeronave executa uma rotina de busca pelo marcador ArUco. Ao localizar e
+se aproximar do marcador, o sistema entra na fase de decisão, onde a extração de dados visuais
+(ID e forma geométrica) é acoplada à regra de divisibilidade do regulamento para deduzir, de
+forma autônoma, a base de pouso correta. A fase final consiste na navegação espacial até o
+alvo, culminando em um alinhamento visual para garantir um pouso centralizado e seguro.
+Vale destacar que, mesmo antes de encontrar o marcador fiducial, o sistema de visão registra
+as posições estimadas das bases encontradas, de forma a otimizar a busca uma vez decodificado
+o gabarito.
+O detalhamento das responsabilidades de cada estado operacional, bem como os gatilhos
+lógicos que regem suas transições, é apresentado a seguir:
+3
+
+• Takeoff: O drone é armado e decola, ganhando altitude com velocidade vertical controlada. A transição para o estado Search ArUco é acionada quando a altitude medida
+atinge a altura de referência h, respeitando uma tolerância ϵ calibrada empiricamente
+(|z − h| < ϵ).
+• Initial ArUco Search: O drone realiza uma varredura visual primária, elevando-se
+exclusivamente no eixo z enquanto processa as imagens da câmera em busca do marcador.
+As transições a partir deste estado são:
+– Go to ArUco: Acionada imediatamente após a detecção e validação do marcador
+ArUco pelo sistema de visão.
+– Search ArUco: Acionada caso o drone atinja o limite máximo de altitude de busca
+(z ≥ zmax ) sem detectar o marcador.
+• Search ArUco: O drone executa uma trajetória de busca predeterminada no plano xy,
+modelada como um problema de cobertura de área utilizando uma espiral quadrada a
+partir da base central [3], para varrer sistematicamente a área útil da arena até localizar
+o marcador ArUco. A transição para o estado Go to ArUco é acionada assim que o
+marcador entra no campo de visão e sua posição relativa é estimada.
+• Go to ArUco: Uma vez localizado o marcador, o drone se translada até estar, dentro
+de o intervalo de confiança, ortogonalmente alinhado com aquele. Nesse instante, a FSM
+invoca o estado de Align para garantir o alinhamento fino e, uma vez completa esta
+etapa, o sistema de visão decodifica o identificador (ID) do ArUco, identifica a forma
+geométrica adjacente conforme especificado na arena, e aplica a regra de divisibilidade do
+regulamento para determinar qual base geométrica representa o alvo correto de pouso.
+As próximas transições são descritas a seguir:
+– Search Base: Acionada se as coordenadas da base alvo ainda não constarem no
+mapeamento espacial do drone.
+– Go to Base: Acionada se a posição da base alvo já tiver sido mapeada em instantes
+anteriores do voo.
+• Search Base: O drone desloca-se pela arena seguindo um padrão de busca predeterminado, ajustado pela posição relativa do gabarito à base de decolagem, para localizar a
+base de pouso específica determinada no estado anterior. A transição para o estado Go
+to Base é acionada pela confirmação visual da posição da base correta.
+• Go to Base: O drone navega até as coordenadas da base alvo no plano xy, executando
+o alinhamento, pelo estado Align, entre seu centro geométrico e o centro da base com
+precisão de posicionamento otimizada para minimizar erros laterais durante o pouso. A
+transição para o estado de Landing ocorre quando o alinhamento é garantido.
+• Landing: O drone executa a descida vertical final. Uma vez no solo, realiza o desarme
+mecânico dos motores.
+
+4
+
+Search
+ArUco
+ArUco não
+encontrado
+
+Takeoff
+altura h
+
+Initial
+ArUco
+Search
+
+ArUco
+encontrado
+
+ArUco
+encontrado
+
+Search
+Base
+não sabe a
+localização
+da base
+
+Go to
+ArUco
+
+base
+encontrada
+
+sabe
+localização
+da base
+
+Go to
+Base
+
+Landing
+
+Figura 1: Diagrama de transição de estados (FSM ) para a estratégia de controle da Missão 01.
+2.2.2
+
+Missão 2: Hang the Right Wire
+
+O objetivo central desta malha de decisão é coordenar a navegação até a esfera de identificação e o acionamento preciso do mecanismo de soltura no alvo estipulado.
+• Takeoff: Sendo um estado comum à todas as missões, funciona de forma idêntica ao
+estado de Takeoff da missão 1.
+• Search Ball: O drone executa uma varredura visual sistemática no ambiente para identificar a esfera marcadora de 25 cm de diâmetro, que atua como referência espacial da
+mangueira alvo. A detecção utiliza algoritmos de segmentação de cores calibrados para a
+tonalidade laranja específica. A transição para o estado Go to Ball ocorre imediatamente
+após a detecção visual e validação geométrica da esfera.
+• Go to Ball: O drone navega em direção à esfera identificada, reduzindo a distância
+horizontal até atingir a proximidade calibrada necessária para o estado subsequente de
+elevação tridimensional. A transição para o estado Rise ocorre quando a distância horizontal relativa entre o drone e a esfera alcança um limiar otimizado empiricamente.
+• Rise: O drone eleva-se no eixo z para garantir que o mecanismo de soltura e o gancho
+acoplado ultrapassem a mangueira, a qual se encontra suspensa a 1,7 m de altura. Este
+estado existe para assegurar que a altitude do drone é suficiente para o alinhamento preciso
+com a mangueira antes do procedimento de liberação. Assim que há a confirmação que o
+veículo atingiu a nova altura operacional, ocorre a transição para o estado Align.
+• Align: O sistema de controle realiza ajustes precisos de orientação (yaw) e posicionamento horizontal para assegurar que o eixo central do mecanismo de soltura permanece
+coaxial e sobreposto à mangueira. Este alinhamento é essencial para garantir a inserção
+correta do gancho. Uma vez que o erro de posicionamento é menor que o mínimo aceitável
+(ϵ), é feita a transição para o estado Drop the hook.
+• Drop the hook: O drone mantém estabilidade posicional através dos controladores
+secundários enquanto o atuador mecânico do gancho é acionado, realizando a liberação
+controlada do componente sobre a mangueira. Feita a liberação do gancho, segue-se para
+o estado Return to Base.
+• Return to Base: O drone navega de volta às coordenadas iniciais da base de decolagem.
+Com o erro posicional dentro da tolerância, segue-se para o estado de Landing.
+• Landing: Também é um estado comum à todas as missões e, portanto, funciona tal
+como ao estado de Landing da missão 1.
+
+5
+
+altura h'
+Takeoff
+
+distância
+da bola
+
+altura h
+
+Align with
+wire
+
+Rise
+
+Search
+Ball
+
+Landing
+
+alinhado
+com
+sucesso
+
+alinhado
+com base
+
+Drop the
+Hook
+
+Go to Ball
+
+Go to
+Base
+garra
+aberta
+com
+sucesso
+
+bola
+encontrada
+
+Figura 2: Diagrama de transição de estados (FSM ) para a estratégia de controle da Missão 02.
+2.2.3
+
+Missão 3: Faulty or Not?
+
+O fluxo lógico iterativo desta missão é responsável por coordenar a navegação sequencial
+entre as coordenadas predefinidas (L1 , L2 e L3 ).
+• Takeoff Decolagem inicial. O próximo estado é Go to Manômetro.
+• Go to Manômetro: O drone se translada em direção à próxima coordenada da sequência
+alvo (inicialmente L1 , seguida por L2 e L3 ). Uma vez na posição correta, o ajuste fino é
+feito pelo estado Align. Garantido um baixo erro de posicionamento, é feita a transição
+para o estado Take Photo.
+• Take Photo: O veículo estabiliza sua cinemática para eliminar desfoque de movimento
+(motion blur ) e captura uma imagem do manômetro. Neste estado, algoritmos de processamento de imagem avaliam a leitura do ponteiro do medidor, classificam o valor em
+relação ao limiar preestabelecido (dentro ou fora da especificação), e engatilham o envio
+do sinal correspondente para a estação de solo reproduzir o arquivo de áudio adequado.
+A imagem processada e validada é armazenada em memória para exibição posterior aos
+avaliadores. As próximas transições são regidas pelos seguintes critérios:
+– Go to Manômetro: Transição cíclica acionada caso a variável interna contadora
+de waypoints indique que a missão ainda não foi concluída (não visitou todos os
+manômetros). O sistema então atualiza a coordenada alvo para a próxima localidade
+da sequência.
+– Go to Base: Transição acionada imediatamente após a captura, classificação e
+emissão sonora referentes à terceira e última coordenada espacial L3 (visitou todos
+os manômetros).
+• Go to Base: O drone navega de volta às coordenadas iniciais da base de decolagem utilizando os sistemas de localização e navegação interna. A última transição é para o estado
+Landing, a qual ocorre uma vez que o alinhamento com a base central é satisfatório.
+• Landing: O drone executa o pouso e, uma vez em solo, realiza o desarme mecânico dos
+motores. Para esse caso, as fotos capturadas serão exibidas na estação de solo ao final da
+missão.
+
+6
+
+não visitou
+todos os
+manômetros
+alinhou
+com a
+base
+Go to
+Manômetro
+
+Takeoff
+
+altura h
+
+alinhou
+com
+manômetro
+
+take
+photo
+
+Go to
+base
+
+Landing
+
+visitou todos
+os
+manômetros
+
+Figura 3: Diagrama de transição de estados (FSM ) para a estratégia de controle da Missão 03.
+
+7
+
+3
+
+Componentes e Sistemas
+
+3.1
+
+Sensores
+
+• GPS Holybro M10
+Justificativa: Em retrospectiva à competição SAE 2025, na fase Hang the hook, a incerteza na altitude foi a principal causa dos problemas de posicionamento do drone, o que
+justificaria a aquisição de um novo GPS. Entretanto, a edição de 2026 passou a permitir,
+em seu regulamento, o uso de range finders, de forma que esse sensor mitiga o desvio de
+altitude.
+• Optical Flow MTF-01 v1.1
+Justificativa: Respaldado pelo edital da competição SAE 2026, foi escolhido um sensor
+que complementa as informações do GPS, melhorando a precisão do posicionamento, principalmente na estimativa de altitude, dentre aqueles permitidos pela regra. Os critérios
+para a escolha foram, em ordem de importância: capacidade de medição de distância
+de até 7 metros, capacidade de medir movimento relativo (técnica de optical flow ) e
+disponibilidade de documentação robusta por parte do fabricante.
+
+Figura 4: Matriz de decisão para escolha do sensor de optical flow.
+• Módulo da Câmera Endoscópio USB de Alta Velocidade, 4MP, 1920x1080, CMOS
+Justificativa: A partir do histórico de operações, optou-se pela integração de câmeras com
+interface USB no drone Essa decisão fundamenta-se na robustez mecânica das portas USB
+da Jetson, característica que mitiga consideravelmente problemas de compatibilidade e
+falhas de reconhecimento pelo sistema operacional e pelos softwares de visão. O critério
+principal para a seleção dos modelos atuais baseou-se na exigência de uma resolução de
+imagem equivalente àquela a presentada pelos sensores visuais empregados em iterações
+anteriores do projeto.
+
+3.2
+
+Equipamentos Eletrônicos
+
+Dada a decisão de utilizar o mesmo drone para todas as missões, apenas com modificações
+modulares para adaptação às necessidades de cada uma, a escolha dos equipamentos eletrônicos
+foi feita para suportar, com segurança, as demandas. Com isso, foi levado em conta também a
+disponibilidade dos equipamentos já possuídos, de forma a evitar gastos desnecessários. Com
+base em voos passados [7], a corrente esperada para um sistema similar de motores, ESC
+e bateria é de 27,80 A, com desvio padrão de 6,22 A. Assim, com base na desigualdade de
+Chebyshev (Eq. 1), a probabilidade de um voo ultrapassar os 60 A é de 3,5%, suficientemente
+baixa para justificar manter a escolha de ESC e PDB que suportem essa corrente.
+P (|X − µ| ≥ kσ) ≤
+• Motor Brother Hobby Avenger V3 2812-900KV
+8
+
+1
+k2
+
+(1)
+
+• Kill Switch 100A
+• Holybro TEKKO 32 60A (ESC)
+• Holybro PDB01 V1.2 (PDB)
+• Bateria 6S 7200mAh 60C
+• Conversor DC-DC ajustável HW 083B
+Justificativa: A integração deste conversor faz-se estritamente necessária para rebaixar
+e estabilizar a tensão bruta fornecida pela bateria, adequando-a às demandas elétricas
+específicas de cada s ubsistema embarcado. Essa adequação garante a alimentação segura
+e contínua dos diversos equipamentos, uma vez que operam em níveis de tensão distintos.
+
+3.3
+
+Computadores e Controladores
+
+• Pixhawk 6X Advanced Flight Controller (Holybro)
+Justificativa: A controladora é eficiente e potente, contando com checagem múltplas de
+falhas no acelerômetro e barômetro. Além disso, a controladora de voo foi escolhida por
+ser já ter sdo utilizada em experiências pregressas, e por ter sido feita para funcionar com
+o firmware PX4, software já utilizado pela equipe, possibilitando uma melhor interação
+entre hardware e equipe.
+• Jetson Orin Nano
+Justificativa: O seu uso se justifica pela sua potência e pelo baixo consumo energético
+(consumo entre 15W e 25W), resultando em uma alta eficiência de uso, algo imprescindível
+para um drone autônomo. O fato de a equipe já ter se familiarizado com o computador
+na competição passada também foi um ponto importante para a escolha do componente.
+
+3.4
+
+Frame e Suportes
+
+Tendo como base o frame X500 V2 da Holybro adaptado — de forma a se encaixar na regra
+de 500 mm entre os eixos — foram modelados suportes em impressão 3D para encaixe adequado
+dos componentes. Seus modelos e desenhos esquemáticos, além de uma breve justificativa para
+cada um, estão descritos no capítulo 4.
+• Frame X500 V2 Holybro adaptado
+• Suporte de Bateria
+• Suporte de Câmera
+• Suporte de Jetson
+• Suporte de Garra e GPS
+Justificativas: A necessidade de desenvolver suportes customizados decorre da ausência
+de interfaces de fixação adequadas para todos os subsistemas no frame X500 original.
+Por esse motivo, foram projetadas estruturas de acoplamento específicas para cada equipamento. O posicionamento dessas peças foi estrategicamente definido para facilitar os
+processos de integração e manutenção, assegurando, simultaneamente, a eficácia operacional exigida para o cumprimento das missões.
+
+9
+
+• Suporte dos pés
+Justificativa: O suporte projetado para pés apresenta dupla funcionalidade. A primeira
+consiste na absorção de energia cinética durante as aterrissagens, mitigando as falhas
+estruturais e quebras que ocorriam com frequência nessa região do frame. A segunda função é fornecer uma interface de fixação estável para a eventual instalação de um roteador
+Wi-Fi externo, conforme detalhado no Capítulo 4.
+
+3.5
+
+Demais componentes
+
+Os demais componentes, como receptor e adaptador Wi-Fi, foram escolhidos de acordo
+com a disponibilidade e compatibilidade com os demais equipamentos, tendo sido testados em
+voos/competições anteriores, de forma a garantir a confiabilidade dos sistemas.
+• Receptor Flysky FS-X6B
+• Adaptador Wi-Fi Archer T3U
+Justificativa: Este equipamento atuará como o módulo principal de conexão Wi-Fi. Sua
+seleção fundamenta-se na alta confiabilidade e estabilidade de sinal, características que
+foram atestadas ao longo de rigorosas validações operacionais. Adicionalmente, o dispositivo destaca-se por apresentar uma massa substancialmente inferior à das antenas
+convencionais, o que confere maior praticidade ao processo de integração e contribui para
+a redução do peso total da aeronave.
+• Hiwonder robot gripper(Garra)
+• Adaptador wifi tp link tx20u
+Justificativa: A utilização deste roteador atua exclusivamente como uma medida de contingência, prevista para ser implementada apenas caso haja severa interferência eletromagnética degradando o link de comunicação durante a competição. Ressalta-se que,
+conforme já descrito no Capítulo 4, este componente adicional não integra a configuração
+base da aeronave.
+
+10
+
+4
+
+Montagem e Integração
+
+O processo de montagem e integração da aeronave foi executado visando a robustez estrutural, a mitigação de vibrações indesejadas e a acessibilidade aos componentes eletrônicos. O
+frame do drone foi adaptado a partir do modelo X500 V2, assegurando o cumprimento das
+regras dimensionais da classe S500, com distância diametral de motores de 480 ± 20 mm[2].
+
+4.1
+
+Diagrama do Sistema Elétrico
+
+Para assegurar a alimentação confiável e segura dos subsistemas de navegação e controle, a
+arquitetura elétrica da aeronave foi dimensionada e distribuída estrategicamente. A Figura 5
+apresenta o diagrama do sistema elétrico, detalhando o fluxo de potência (tensão e corrente),
+o posicionamento dos conversores DC-DC e a alimentação dos componentes embarcados, em
+estrita conformidade com os requisitos do Regulamento.
+
+Figura 5: Diagrama esquemático do sistema elétrico, evidenciando o fluxo de distribuição de
+energia a partir da bateria para os demais subsistemas do drone.
+A distribuição de potência é gerenciada pela Holybro PDB01 V1.2, que fornece a tensão
+não regulada diretamente ao ESC 4-em-1 e passa por conversores DC-DC para suprir a tensão necessária para a operação do computador de bordo (Jetson Orin Nano) e os periféricos
+associados às missões.
+
+4.2
+
+Montagem 3D e Configurações Modulares
+
+O projeto mecânico da aeronave foi concebido sob uma arquitetura modular, otimizando
+a substituição de componentes e garantindo acessibilidade segura à bateria. Essa disposição
+permite que os compoentes sejam integrados ou removidos conforme os requisitos operacionais
+de cada missão, mantendo intacto o sistema central de controle e propulsão.
+Para prever e evitar interferências mecânicas durante a integração física, todos os suportes
+desenvolvidos pela equipe foram previamente modelados no ambiente virtual do Fusion 360.
+Posteriormente, as peças foram validadas em bancada e em ensaios de voo. A Figura 6 ilustra o
+modelo 3D da configuração completa, destacando o frame X500 em cinza, os suportes impressos
+em azul, os componentes elétricos em amarelo e os demais sistemas (como sensores, controladora
+de voo, Jetson, garra e GPS) em vermelho.
+
+11
+
+Figura 6: Montagem 3D da configuração completa do drone. (1) vista isométrica (2) vista
+lateral (3) vista frontal (4) vista traseira.
+Com o intuito de facilitar a visualização do modelo 3D, os cabos de conexão, motores e hélices
+foram omitidos da representação. Pelo mesmo motivo, o kill switch e o power modulenão estam
+ilustrados nesta vista, embora o kill switch esteja fisicamente posicionado logo acima do suporte
+dos sensores (Figura 10) e o power module esteja conectado diretamente ao cabo da bateria.
+Cabe ressaltar que a orientação frontal do drone acompanha o alinhamento da controladora
+Pixhawk 6X. Devido à arquitetura modular do projeto, essa orientação pode ser reajustada
+caso surja alguma necessidade operacional, sem que isso comprometa o restante da montagem
+estrutural.
+4.2.1
+
+Posicionamentos específicos dos componentes
+
+Para fins de elucidação, essa seção é dedicada à descrição dos posicionamentos específicos
+dos componentes no drone.
+Na parte superior do drone, encontram-se a Jetson Orin Nano e a Pixhawk 6X, bem como
+um conversor DC-DC que alimenta a Jetson. Também há o respectivo suporte e capacetes que
+apoiam e protegem a Jetson de impactos.
+
+12
+
+Figura 7: Zoom da montagem da parte superior do drone.
+A seção central da aeronave é dedicada exclusivamente aos componentes eletrônicos (Figura
+8), sendo eles: o ESC central, a placa de distribuição de energia (PDB ), um conversor DC-DC
+que alimenta a garra e o kill switch (não representado na figura).
+
+Figura 8: Zoom da montagem da seção central do drone.
+Já na parte inferior da aeronave, estão localizados o suporte da garra e do GPS, fixados
+à parte dianteira dos tubos inferiores do frame X500 como mostrado na Figura 9. Na parte
+traseira desses tubos, encontra-se o suporte das câmeras, conforme mostrado na Figura 10.
+Abaixo desses componentes, situam-se o suporte da bateria e os suportes dos trens de
+pouso (pés), que auxiliam na absorção de impactos no frame. Vale mencionar que, caso seja
+necessário devido às condições de interferência no momento da competição, é possível posicionar
+um roteador Wi-Fi mais potente acima do suporte dos pés, como descrito no Capítulo 3. Por
+esse motivo, o suporte possui uma base dedicada para esse roteador; entretanto, essa adição
+não constitui a configuração base.
+
+13
+
+Figura 9: Zoom da montagem da parte inferior.
+4.2.2
+
+Configuração para as Missões 1 e 3 (Sem Garra)
+
+Nas Missões 1 (Bouncing 2.0) e 3 (Faulty or Not?), a prioridade é a identificação de padrões e navegação visual contínua. Para estas tarefas, a aeronave opera em sua configuração
+de reconhecimento, que inclui duas câmeras monoculares ,uma montada fixada na direção horizontal e outra fixada na direção vertical,e o sensor de optical flow MTF-01 posicionado atras
+da câmera monocular horizontal (Figura 10). A ausência da garra nesta configuração reduz a
+massa, aumentando a autonomia de voo.
+
+14
+
+Figura 10: Zoom da montagem do suporte dos sensores.
+4.2.3
+
+Configuração para a Missão 2 (Com Garra)
+
+Para a Missão 2 (Hang the Right Wire), a aeronave é equipada com a garra e o respectivo
+gancho, sendo essa a configuração completa. A Figura 6 detalha essa configuração. O gancho
+a ser utilizado é detalhado na Figura 11.
+
+Figura 11: Montagem 3D do gancho.
+
+15
+
+5
+
+Sistema de Navegação
+
+O Sistema de Navegação autônoma do drone envolve os subsistemas de percepção espacial,
+de tomada de decisão e execução das missões. Esse sistema baseia-se em uma arquitetura
+computacional distribuída, em que controle e estabilização é de responsabiidade da controladora
+de voo, enquanto a inteligência operacional é atribuída ao computador de bordo. Quanto à
+percepção espacial, utiliza-se fusão de dados de posicionamento geográfico com medições de
+fluxo óptico, além de subsistemas de visão computacional com abordagens majoritariamente
+clássicas. As operações de cada missão são regidas por uma Máquina de Estados Finitos.
+
+5.1
+
+Arquitetura de Software e Versionamento
+
+A arquitetura de software opera de forma distribuída entre a controladora de voo e o computador de bordo. A controladora Pixhawk 6X executa o firmware PX4 (versão 1.15.4), sendo
+responsável pelo controle de baixo nível, isto é, estabilização, controle de atitude, leitura de sensores inerciais e atuação direta dos motores. O computador de bordo, uma Jetson Orin Nano,
+executa o middleware ROS2 (versão Humble), operando sob o sistema operacional Ubuntu
+22.04. É nesta camada superior que residem as máquinas de estados e os algoritmos de visão
+computacional.
+A comunicação entre o ecossistema PX4 e o ambiente ROS2 é realizada através da ponte
+Micro XRCE-DDS [6]. Essa arquitetura viabiliza a tradução e a troca de tópicos nativos uORB
+da controladora para mensagens ROS2 com altíssima eficiência.
+Estação Solo e Telemetria Para a função de Estação de Solo, adotou-se o software de
+código aberto QGroundControl. Este atua como a interface primária do operador para o monitoramento da telemetria em tempo real e monitoramento do drone durante a execução das
+missões. A conectividade entre a estação e a controladora de voo é estabelecida via Wi-Fi,
+empregando o protocolo de comunicação MAVLink [14], através do MAVLink Router, o qual
+é extremamente leve. Durante os ensaios de voo práticos, registrou-se uma latência média de
+comunicação MAVLink de 3,06 ms, um número obtido pelos logs de voo que reflete a eficiência
+do sistema.
+
+Figura 12: Diagrama da arquitetura de software, evidenciando a ponte uXRCE-DDS [20] entre
+o PX4 e os nós do ROS2.
+
+5.2
+
+Fusão de Sensores e Posicionamento
+
+O sistema de estimativa de estado e navegação da aeronave foi projetado para garantir
+robustez e redundância, operando primariamente com a integração de um módulo GPS Holybro
+M10 e um sensor de Optical Flow (Fluxo Óptico) modelo MTF-01. A fusão desses dados é
+realizada pelo algoritmo EKF2, executado nativamente pelo firmware PX4.
+
+16
+
+O módulo Holybro M10 atua como a fonte primária de posicionamento global absoluto.
+Ele fornece coordenadas geográficas com precisão típica de 2.0 metros em condições ideais de
+céu aberto [8]. Contudo, sinais de rádio-navegação são intrinsecamente suscetíveis a ruídos de
+alta frequência, efeitos de multicaminho e flutuações ionosféricas, o que induz drift indesejável
+durante o hover em um ponto fixo [16].
+Para suprir essa limitação, integrou-se o sensor MTF-01. Este componente embarca uma
+câmera de fluxo óptico acoplada a um telêmetro LiDAR. O fluxo óptico mede a velocidade
+relativa translacional da aeronave rastreando o deslocamento de texturas e padrões do solo
+entre quadros de imagem sucessivos, enquanto o LiDAR fornece a distância ortogonal até o
+chão para parametrizar a escala geométrica em metros desse movimento em pixels.
+
+5.3
+
+Visão Computacional
+
+O ambiente da competição caracteriza-se por ser um cenário visualmente previsível, uma
+vez que os alvos e objetos de interesse possuem atributos geométricos (círculos, triângulos,
+hexágonos, estrelas) e cromáticos (azul, laranja) rigorosamente definidos pelo edital.
+Diante dessa previsibilidade, optou-se por adotar técnicas de visão computacional clássica,
+as quais exigem menor poder de processamento do computador de bordo quando comparadas
+com modelos de Redes Neurais Convolucionais (CNNs). Contudo, a principal vulnerabilidade
+das técnicas puramente clássicas reside na sua alta sensibilidade a variações de luminosidade.
+Como a competição está sujeita a mudanças climáticas, projeção de sombras e diferentes temperaturas de cor ao longo do dia, limiares estáticos de detecção rapidamente se tornariam obsoletos, comprometendo a confiabilidade do sistema. Para mitigar esse risco de forma robusta
+e dispensar o uso generalizado de Deep Learning, a arquitetura de processamento de imagens
+foi projetada em torno de duas contramedidas fundamentais de equalização e calibração:
+• Equalização de Histograma: Redistribuição dos níveis de intensidade luminosa de
+forma a uniformizar regiões excessivamente escuras ou saturadas, favorecendo os algoritmos de detecção [19].
+• Rotina de Calibração de Cores: Instantes antes da decolagem, faz-se a amostragem
+das condições reais de iluminação do ambiente, calibrando e ajustando os limites das
+máscaras de cor para a realidade daquele voo específico.
+A única exceção a essa abordagem puramente clássica ocorre na tarefa de leitura dos numerais impressos no cenário. Devido à extrema complexidade de segmentar e classificar tipografia
+sob os variados ângulos de perspectiva e distorções causadas pela dinâmica de voo, optou-se
+pela integração pontual de algoritmos de Deep Learning por meio da biblioteca EasyOCR.
+Diferente das CNNs generalistas de detecção de objetos, esta ferramenta foi especificamente
+arquitetada para o Reconhecimento Óptico de Caracteres (OCR). Essa biblioteca opera sobre
+o framework PyTorch, o que viabiliza a aceleração de inferência via GPU (CUDA) no computador de bordo. Além disso, ela permite restringir o domínio de predição exclusivamente para
+numerais, garantindo maior precisão e mitigando o custo computacional exigido do sistema
+embarcado.
+5.3.1
+
+Modelo Pinhole
+
+O modelo de câmera pinhole [29] descreve a geometria da formação de imagens assumindo
+que a abertura da câmera é um ponto infinitesimalmente pequeno (centro óptico). Consequentemente, todos os raios de luz refletidos pela cena tridimensional convergem e passam
+
+17
+
+obrigatoriamente por esse único ponto antes de atingir o sensor. Para fins de modelagem geométrica, convenciona-se posicionar um plano de imagem virtual à frente do centro óptico, a
+uma distância focal f .
+A relação fundamental do modelo pinhole, que mapeia um ponto 3D no espaço do mundo
+(X, Y, Z) para um ponto 2D no plano da imagem em coordenadas de pixel (u, v), é descrita
+pela seguinte equação matricial em coordenadas homogêneas:
+
+
+ 
+
+ 
+ X
+r11 r12 r13 tx 
+u
+f x 0 cx
+
+Y 
+ 
+
+
+ 
+
+s  v  =  0 fy cy   r21 r22 r23 ty  
+(2)
+ Z 
+
+
+1
+0 0 1
+r31 r32 r33 tz
+{z
+} |
+{z
+} 1
+|
+Matriz Intrínseca Matriz Extrínseca
+onde s é um fator de escala escalar relacionado à profundidade.
+A Matriz Extrínseca [R|t] mapeia as coordenadas do referencial do mundo para o referencial da câmera através de uma matriz de rotação R (3×3) e um vetor de translação t (3×1).
+Neste projeto, a matriz extrínseca foi rigorosamente construída utilizando os parâmetros físicos
+e geométricos da estrutura do drone. Essa matriz garante, a translação e rotação adequadas
+do referencial da câmera para o centro da aeronave, possibilitando que as medições visuais
+sejam convertidas corretamente para a atuação dos motores de voo, garantindo um melhor
+alinhamento com os alvos.
+Por sua vez, a Matriz Intrínseca (K) codifica as propriedades internas do sensor óptico e
+das lentes, contendo as distâncias focais nos eixos verticais e horizontais (fx , fy ) e as coordenadas
+do centro óptico da imagem (cx , cy ). Para garantir a precisão do modelo perante imperfeições
+de fabricação da lente, os valores da matriz intrínseca foram extraídos de maneira empírica por
+meio de um processo de calibração de câmera, utilizando a detecção dos vértices de um padrão
+conhecido (tabuleiro de xadrez), conforme ilustrado na Figura 14.
+Para a aplicação prática neste projeto, considerou-se o referencial solidário ao centro do
+drone, adotando a convenção aeronáutica padrão FRD, na qual o eixo x aponta para a frente, o
+eixo y para a direita e o eixo z para baixo. Por outro lado, os algoritmos de visão computacional
+adotam o referencial óptico da câmera, onde x aponta para a direita da imagem, y para baixo
+da imagem e z representa a profundidade (saindo ortogonalmente da lente).
+As posições dos centros ópticos das câmeras em relação à origem do drone foram extraídas
+do projeto estrutural (CAD). Convertendo para o Sistema Internacional (metros), os vetores
+de translação espacial para a câmera horizontal (th ) e para a câmera vertical (tv ) são:
+
+
+
+
+0.1774
+0.1344
+
+
+
+
+0
+0
+th = 
+tv = 
+(3)
+ m,
+m
+0
+0.0419
+
+Figura 13: Distâncias necessárias para os vetores de translação espacial das câmeras
+18
+
+Para a câmera horizontal (que olha para a frente), o eixo x do drone torna-se a profundidade (z) da câmera; o eixo y do drone continua sendo a direita (x) da câmera; e o eixo z do
+drone torna-se o para baixo (y) da câmera. Já para a câmera vertical (que olha para baixo,
+com o topo da imagem alinhado com a frente do drone), o eixo z do drone torna-se a profundidade (z) da câmera. O eixo y do drone continua sendo a direita (x) da câmera. Contudo,
+mover-se para a frente do drone (+x) equivale a subir na imagem da câmera (−y). Assim:
+
+
+
+
+0 1 0
+0 1 0
+
+
+
+
+Rh =  0 0 1  , Rv =  −1 0 0 
+(4)
+1 0 0
+
+0
+
+0 1
+
+onde Rh é a matriz de rotação da câmera horizontal e Rv , da vertical.
+Sabe-se que o vetor de translação final na matriz extrínseca representa o deslocamento do
+mundo em relação à câmera, dado por −Rt. Com as translações e as rotações definidas, as
+matrizes extrínsecas finais para as câmeras horizontal (Eh ) e vertical (Ev ) assumem a seguinte
+forma analítica:
+
+
+
+
+0 1 0
+0
+0
+0 1 0
+
+
+
+
+0
+(5)
+Eh =  0 0 1
+ , Ev =  −1 0 0 0.1344 
+1 0 0 −0.1774
+
+0
+
+0 1 −0.0419
+
+Em conformidade com as exigências do edital da competição, o sistema de percepção visual
+emprega duas câmeras de mesmo modelo. Como tolerâncias e variações são intrínsecas ao
+processo de manufatura de instrumentação óptica, duas lentes e sensores de mesmo modelo
+podem apresentar propriedades geométricas ligeiramente diferentes. Sendo assim, para mitigar
+esses erros de fabricação, realizou-se um procedimento empírico de calibração utilizando o
+padrão de tabuleiro de xadrez, permitindo extrair os parâmetros focais e de centro óptico de
+cada unidade isoladamente.
+
+Figura 14: Tabuleiro de xadrez utilizado durante o processo empírico de calibração para a
+obtenção da matriz intrínseca da câmera.
+Essa calibração foi realizada utilizando o método de Zhang [29], resultando em um erro
+de reprojeção RMS de 0.64 pixels. A matriz intrínseca K, que relaciona as coordenadas tridimensionais da cena com as coordenadas bidimensionais do plano da imagem, foi estimada
+como:
+
+ 
+
+f x 0 cx
+1554.95
+0
+648.94
+1545.72 395.80
+K =  0 f y cy  =  0
+(6)
+0 0 1
+0
+0
+1.00
+onde fx e fy representam as distâncias focais expressas em pixels, e (cx , cy ) denota o centro
+óptico do sensor. A proximidade entre os valores de fx e fy (≈ 0.5% de diferença) confirma
+19
+
+a integridade da captura. Adicionalmente, os coeficientes de distorção radial (k1 , k2 , k3 ) e
+tangencial (p1 , p2 ) da lente foram calculados e organizados no vetor de distorção D:
+
+ 
+
+D = k1 k2 p1 p2 k3 = −0.31 −0.48 −0.01 0.005 1.32
+5.3.2
+
+(7)
+
+Detecção de Bases
+
+A base de aterrissagem consiste de um círculo de coloração azul e leves detalhes pretos.
+Para a detecção desta, foi implementada o seguinte pipeline:
+1. Conversão para o Espaço de Cores HSV: A imagem original capturada nos canais
+RGB é convertida para o espaço tridimensional HSV (Hue, Saturation, Value), o qual
+desacopla a informação de cromaticidade (Matiz) da informação de luminosidade (Valor).
+Isso é fundamental para que o azul seja detectado consistentemente, independentemente
+se a base encontra-se sob luz direta ou em áreas de sombra.
+2. Limiarização por Cor: Aplica-se uma filtragem passa-banda nos canais HSV. Define-se
+um limite inferior e superior para o canal Hue que englobe exclusivamente o espectro da
+cor azul da base, aliado a limites mínimos de saturação e brilho para ignorar ruídos. O
+resultado desta operação é uma máscara binária onde apenas os pixels azuis da imagem
+original assumem o valor lógico alto (1).
+3. Operações Morfológicas: Reflexos na superfície da base ou ruídos do sensor podem
+gerar buracos dentro da máscara binarizada ou falsos positivos no fundo. Para mitigar
+isso, aplicam-se operações morfológicas, especificamente o Closing e o Opening, de forma
+a eliminar ruídos isolados no fundo negro.
+4. Estruturação Topológica (Algoritmo de Suzuki): Sobre a máscara binária limpa,
+utiliza-se o algoritmo de Suzuki e Abe [27]. Este método realiza a união e a análise dos
+gradientes da matriz de 0s e 1s, garantindo a extração da fronteira contínua que define o
+perímetro do círculo detectado.
+5. Cálculo do Centroide via Momentos de Imagem: Isolado o contorno fechado da
+base azul, aplicam-se os Momentos de Imagem [9] para localizar o centro. O centroide
+geométrico (xc , yc ) da base é calculado pela razão entre os momentos de primeira ordem
+e o momento de ordem zero (área):
+M01
+M10
+, yc =
+(8)
+M00
+M00
+onde M00 representa a "massa"total de pixels do objeto identificado, enquanto M10 e M01
+descrevem suas distribuições espaciais nos respectivos eixos cartesianos.
+xc =
+
+Figura 15: Detecção de bases utilizando imagens no formato png como entrada.
+20
+
+5.3.3
+
+Detecção de Marcadores ArUco
+
+Marcadores ArUco [17] fornecem assinaturas visuais únicas e pontos de referência de alto
+contraste que permitem não apenas a localização em coordenadas de pixel, mas também a
+estimação completa da pose tridimensional (posição e orientação) do alvo em relação à câmera.
+O algoritmo de detecção foi calibrado para identificar marcadores pertencentes ao dicionário
+DICT_5X5_1000 da biblioteca OpenCV, considerando uma dimensão física real de 250mm ×
+250mm para a aresta do quadrado delimitador do marcador.
+O pipeline de processamento e estimação de estado segue as seguintes etapas:
+1. Extração de Vértices e Identificação: O algoritmo varre a matriz de pixels em busca
+de candidatos quadrangulares com transições de alto contraste (bordas pretas sobre fundo
+branco). Uma vez identificada a geometria, o padrão interno do marcador é amostrado e
+comparado com o dicionário pré-definido para validar a detecção e extrair o identificador
+único (ID) do marcador. Esta etapa retorna as coordenadas em pixels dos quatro vértices
+de cada ArUco validado.
+2. Estimação de Pose 3D: O sistema resolve o Problema de Perspectiva de N-Pontos
+(PnP) [23]. Para isso, o algoritmo utiliza a matriz intrínseca (K) e os coeficientes de
+distorção da câmera obtidos empiricamente no processo de calibração da câmera. A
+solução deste problema geométrico fornece a transformação completa do referencial do
+marcador para o referencial da câmera, expressa por dois vetores tridimensionais, um de
+translação representando as coordenadas do centro do marcador em relação ao centro
+ótico da câmera e um de rotação no formato de Rodrigues [28], cuja direção indica o eixo
+de rotação e a magnitude indica o ângulo de torção ao redor deste eixo.
+3. Conversão de Atitude para Quaternions [24]: Para garantir a padronização matemática e evitar problemas de Gimbal Lock durante as operações de controle em malha
+fechada, é feita a conversão para o formato de Quaternions q = (qw , qx , qy , qz ) utilizando
+a relação algébrica com os elementos da matriz R:
+√
+max(0,1+R11 +R22 +R33 )
+qw =
+2
+qx =
+qy =
+qz =
+
+R32 −R23
+4qw
+R13 −R31
+4qw
+R21 −R12
+4qw
+
+(9)
+
+4. Empacotamento e Publicação: O nó empacota o ID, a confiança geométrica da detecção, as posições em metros e os quaternions de orientação em uma mensagem customizada,
+publicando-a na rede ROS2.
+5.3.4
+
+Detecção de Formas Geométricas
+
+Para a identificação de formas geométricas variadas no ambiente da competição, o sistema
+emprega o algoritmo de Ramer-Douglas-Peucker [21, 5] para extrair e classificar os polígonos
+presentes no campo de visão.
+Este algoritmo atua na simplificação de formas geométricas, isto é, dada uma curva paramétrica contínua (ou um contorno ruidoso extraído da imagem), o algoritmo reduz iterativamente
+o número de vértices com base em um limiar de tolerância máxima de distância ϵ. Se a distância
+ortogonal do contorno real para a linha reta aproximada for menor que ϵ, o algoritmo descarta
+os vértices intermediários. O resultado final é um array minimizado contendo estritamente as
+coordenadas das quinas estruturais da forma geométrica.
+A arquitetura para essa tarefa de detecção implementa o seguinte pipeline:
+21
+
+1. Pré-processamento e Filtragem: A imagem capturada é convertida para escala de
+cinza e submetida a um filtro Gaussian Blur para eliminar ruídos.
+2. Limiarização e Extração de Gradientes: Aplica-se a binarização com o método
+adaptativo de Otsu [18] para separar os alvos do fundo. Em seguida, o detector de bordas
+de Canny [4] atua sobre a máscara binária para extrair os gradientes morfológicos dos
+objetos.
+3. Estruturação Topológica: Utiliza-se o algoritmo de Suzuki e Abe [27] para iterar sobre
+a matriz de bordas, conectando segmentos isolados e extraindo o perímetro fechado de
+cada candidato a polígono.
+4. Aproximação Poligonal de Ramer-Douglas-Peucker: Os contornos estruturados
+são submetidos à aproximação. A tolerância ϵ é definida dinamicamente em função do
+comprimento total do perímetro do contorno original, garantindo escalabilidade caso o
+drone varie de altitude.
+5. Classificação Morfológica: A classificação final é realizada através da contagem do
+comprimento do array de vértices retornado:
+• 3 vértices: Triângulo.
+• 6 vértices: Hexágono.
+• 10 vértices: Estrela.
+Para evitar que artefatos irregulares de 10 lados sejam confundidos com a marcação em
+formato de Estrela, introduz-se a análise de solidez. Esta é a razão geométrica entre a
+área do polígono e a área do seu fecho convexo (convex hull ). Como a estrela possui
+invaginações profundas, sua solidez situa-se tipicamente entre 0.3 e 0.6, diferenciando-a
+de polígonos convexos genéricos.
+
+Figura 16: Detecção das formas geométricas utilizando uma imagem png como entrada.
+5.3.5
+
+Detecção de Números
+
+A tarefa de leitura dos numerais impressos no cenário de competição é o único módulo do
+subsistema de visão que exige a aplicação direta de técnicas de Inteligência Artificial. Devido à
+complexidade inerente à classificação tipográfica sob variações severas de perspectiva, escala e
+sombreamento, métodos tradicionais baseados em template matching, demonstraram-se frágeis,
+justificando a adoção de redes neurais artificiais.
+Contudo, a inferência contínua de redes neurais sobre as imagens em alta resolução da câmera consumiria demasiadamente os recursos do computador de bordo. Assim, para contornar
+esse problema, o sistema aproveita o fato de que os números estão invariavelmente inscritos no
+interior das formas geométricas para delimitar Regiões de Interesse (ROI). O nó responsável
+22
+
+pela detecção de formas geométricas (visão clássica) opera ativamente e em tempo real sobre
+a imagem total da câmera. Assim que uma geometria alvo é identificada, o sistema extrai a
+sua bounding box e a recorta isolando um fragmento contendo o numeral no centro. Apenas
+esta ROI diminuta é repassada para o nó encarregado do reconhecimento numérico. Essa estratégia garante que o algoritmo pesado de inferência seja ativado somente quando estritamente
+necessário.
+A execução do Reconhecimento Óptico de Caracteres (OCR) é realizada pela biblioteca
+EasyOCR, construída sobre o framework PyTorch, viabilizando a aceleração de inferência via
+hardware (CUDA) na GPU da Jetson Orin Nano. Esta biblioteca opera com a seguinte arquitetura sequencial:
+1. Detecção via CRAFT (Character Region Awareness for Text Detection): O
+fragmento recortado (ROI) é submetido a uma rede neural que foca em localizar caracteres
+individuais e prever a afinidade espacial entre eles.
+2. Reconhecimento via CRNN (Convolutional Recurrent Neural Network ): O
+padrão identificado pela etapa anterior é processado por uma arquitetura CRNN. Para
+maximizar a velocidade de inferência, o decodificador foi configurado com uma lista de
+permissões. Isso restringe o domínio de predição do algoritmo exclusivamente para os
+caracteres numéricos da missão.
+
+Figura 17: Detecção robusta dos numerais utilizando o EasyOCR operando sobre recortes
+internos das geometrias originais.
+5.3.6
+
+Detecção da Esfera Laranja
+
+A rotina de visão computacional responsável pela detecção da esfera laranja baseia-se essencialmente no mesmo pipeline desenvolvida para a identificação das bases de aterrissagem.
+O processamento inicia-se com a conversão da imagem capturada para o espaço de cores HSV,
+seguida por uma etapa de limiarização configurada especificamente para o espectro contínuo da
+cor laranja (intervalo de Hue calibrado antes do voo). Após o isolamento da cor e a supressão
+de ruídos através de operações morfológicas clássicas (abertura e fechamento), a topologia do
+alvo é extraída por meio do algoritmo de Suzuki e Abe [27] e seu centroide é calculado via
+Momentos de Imagem [9].
+No entanto, além de fornecer as coordenadas (x, y) do centro de massa do objeto, a arquitetura deste algoritmo também retorna o raio do círculo detectado e a porcentagem de ocupação
+visual, calculada pela razão entre a área total do polígono detectado e a área total de resolução
+da imagem. Ambas essas informações são utilizadas para estimar a distância do drone em
+relação à esfera detectada.
+5.3.7
+
+Detecção da Mangueira
+
+A mangueira a ser detectada, assim como a esfera, é de coloração laranja. Quando observada ortogonalmente pela câmera inferior do drone, sua projeção geométrica assemelha-se
+23
+
+a um retângulo estreito e alongado. A etapa de pré-processamento e segmentação cromática
+compartilha a mesma arquitetura desenvolvida para a esfera laranja, utilizando a conversão
+para o espaço HSV e a limiarização contínua para isolar a região de interesse.
+Na maior parte das aproximações, a mangueira não estará perfeitamente alinhada com os
+eixos ortogonais da imagem (x e y), mas sim disposta de forma oblíqua. A utilização de uma
+bounding box paralela aos eixos da imagem englobaria uma área de fundo excessiva e corromperia o cálculo do aspect ratio, falhando em caracterizar a forma "fina e comprida"da mangueira.
+Para solucionar essa limitação, adotou-se a abordagem de computar o menor retângulo possível que circunscreve o contorno detectado, acompanhando a inclinação natural do objeto.
+Em uma única operação matricial eficiente, esta técnica extrai as coordenadas do centroide da
+mangueira, as dimensões do retângulo inclinado e o ângulo de inclinação do eixo principal em
+relação à horizontal da imagem.
+Com as dimensões do retângulo, calcula-se o aspect ratio a fim de verificar se o objeto em
+questão realmente é um retângulo.
+Ratio =
+
+max(W, H)
+min(W, H)
+
+(10)
+
+Caso esse coeficiente supere um limiar pré-estabelecido, o sistema atesta que a geometria
+detectada corresponde à mangueira.
+Estratégia de controle A extração simultânea da posição e da orientação permitiu otimizar
+a cinemática de aproximação do drone, mitigando o risco de perda do alvo no campo de visão.
+Caso a aeronave executasse a correção de orientação (guinada/yaw) à distância, a translação
+acoplada faria a mangueira descrever um amplo arco na imagem, podendo sair do enquadramento da câmera. Dessa forma, projetou-se uma estratégia de controle dinâmico desacoplado,
+dividida em duas fases sucessivas:
+• Translação: A malha de controle atua somente nos eixos translacionais (x e y). Utilizando o centroide (xc , yc ) como referência, a aeronave se desloca linearmente até pairar
+com seu centro de massa sobre o meio da mangueira.
+• Rotação: Uma vez centralizado, o drone inicia o movimento rotacional sobre o próprio
+eixo para anular o erro angular θ.
+5.3.8
+
+Detecção da Indicação do Manômetro
+
+Como premissa fundamental para a execução desta etapa, ressalta-se que o algoritmo de
+visão computacional descrito a seguir inicia sua operação exclusivamente após o drone estar
+centralizado com a base do manômetro (alinhamento nos eixos x e y). Esta condição de contorno é estritamente necessária para mitigar os erros oriundos da transformação de perspectiva
+(homografia). Quando a captura é realizada com ângulos de incidência muito oblíquos em relação ao plano do alvo, a distorção projetiva é severa, resultando em perda de resolução e de
+informações cruciais durante o processo de retificação (warp).
+O objetivo do algoritmo é detectar e extrair a medida indicada por um manômetro analógico
+impresso em preto e branco. Fisicamente, o instrumento possui um raio de 100 mm e encontrase inscrito em um suporte quadrado branco de 127 mm de lado. A escala de medição é graduada
+nos valores 0, 20, 40, 60, 80 e 100, utilizando a tipografia Arial Negrito. É dado que a agulha
+indicadora não se sobrepõe aos numerais da escala. Além disso, a arte do manômetro conta com
+uma extensão geométrica que acompanha o contorno da moldura, servindo como uma indicação
+referencial de sua base (orientação inferior), conforme ilustrado na Figura 18.
+
+24
+
+Figura 18: Representação do manômetro alvo. A seta vermelha (ilustrativa) indica o detalhe
+geométrico que acompanha a moldura, utilizado como referencial de base para a orientação da
+imagem.
+A estratégia de detecção baseia-se no alto contraste da imagem (preto e branco) e no uso
+da indicação da base para determinar a orientação espacial correta do instrumento. O pipeline
+de processamento de imagens adota as seguintes etapas sequenciais:
+1. Pré-processamento: Conversão para Escala de Cinza e Binarização: Após o
+recebimento do frame da câmera, a imagem original em escala de cores (RGB) é convertida para escala de cinza. Esta redução de dimensionalidade computacional otimiza o
+processamento e facilita a detecção de gradientes espaciais. Em seguida, aplica-se uma
+operação de thresholding (limiarização) para transformar a imagem em formato binário.
+Neste projeto, ao invés de adotar um valor de limiar global fixo, que é suscetível a falhas
+diante de variações de iluminação no ambiente da competição, optou-se pela utilização do
+método de Otsu [18]. O método de Otsu calcula o limiar ótimo iterativamente, minimizando a variância intra-classe dos pixels pretos e brancos, o que garante uma binarização
+robusta independentemente da luminosidade incidente.
+2. Detecção de Contornos: Para extrair a geometria do manômetro, faz-se necessária
+a detecção de contornos na imagem binarizada. Utilizou-se, para isso, o filtro de Sobel
+[25]. Este consiste de uma entropia cruzada para calcular aproximações das derivadas de
+primeira ordem da imagem.
+3. Extração da Região de Interesse (ROI): A partir dos contornos detectados, realizase uma busca heurística pelo maior polígono de quatro vértices que se assemelhe a um
+quadrado. Este quadrilátero corresponde à base branca de 127 mm na qual o manômetro
+está inscrito. A identificação desse polígono permite recortar a imagem, isolando a Região
+de Interesse (ROI) e descartando o fundo do cenário.
+4. Retificação de Perspectiva (Homografia): Devido à atitude de voo do drone, o
+quadrado detectado frequentemente sofre distorções de perspectiva, não se apresentando
+como um quadrado perfeito no plano da imagem. Para corrigir essa inclinação, aplica-se
+uma transformação geométrica projetiva, denominada Homografia (Warp Perspective),
+cujos resultados podem ser observados na Figura 19. Matematicamente, a homografia
+mapeia os pontos do plano da câmera para o plano do manômetro através de uma matriz
+de transformação H de dimensão 3 × 3:
+ ′  
+ 
+x
+h11 h12 h13
+x
+ ′  
+ 
+(11)
+ y  =  h21 h22 h23   y 
+w′
+h31 h32 h33
+1
+
+25
+
+onde (x, y) são as coordenadas distorcidas e (x′ /w′ , y ′ /w′ ) são as coordenadas retificadas.
+Novamente, reitera-se que o prévio alinhamento do drone com o manômetro minimiza a
+excentricidade dos ângulos da matriz H. Se a transformação for muito severa, a interpolação de pixels necessária para "esticar"a imagem resultará em serrilhamento e perda de
+dados nas marcações da escala.
+
+Figura 19: Comparativo visual do manômetro antes (esquerda) e após (direita) a retificação de
+perspectiva via Homografia.
+5. Subtração de Template e Determinação da Orientação: Com a imagem retificada,
+utiliza-se a técnica de subtração de template. Um modelo vetorizado do manômetro isento
+do ponteiro é utilizado como referência. Através da função subtract, a imagem retificada
+capturada é subtraída do template, anulando os pixels coincidentes, de forma a isolar o
+ponteiro. Contudo, como o suporte quadrado não garante uma orientação unívoca (o
+manômetro pode estar rotacionado em 0◦ , 90◦ , 180◦ ou 270◦ ), são realizadas 4 operações
+independentes de subtração. É neste passo que a característica geométrica da base da
+moldura atua como chave seletora. A orientação correta é determinada identificando a
+subtração que gera a menor quantidade de pixels pretos residuais. As subtrações com
+o template rotacionado erroneamente gerarão uma grande quantidade de artefatos não
+sobrepostos, como evidenciado na Figura 20.
+
+Figura 20: Resultados das 4 subtrações de template correspondentes às orientações possíveis.
+A imagem com maior valor de "Diff Val"indica a orientação verdadeira, isolando com sucesso
+o ponteiro.
+6. Filtragem de Ruído (Blur) e Re-Binarização: Após a subtração, artefatos indesejados originados por imperfeições de iluminação ou serrilhamentos da homografia podem
+surgir como pontos isolados. Aplica-se, portanto, uma filtragem espacial. Optou-se pelo
+median blur para filtragem de ruído. Ao substituir cada pixel pela mediana de sua vizinhança, este filtro é excepcionalmente eficiente em eliminar isolados. Por fim, a imagem
+resultante é novamente binarizada via limiarização de Otsu para garantir o isolamento
+pleno do objeto de interesse.
+7. Cálculo do Ângulo de Indicação: Para a extração precisa do ângulo do ponteiro,
+adotou-se a Análise de Componentes Principais (PCA) [12]. Este método permite
+26
+
+encontrar as direções principais de dispersão em um conjunto de dados multivariados. No
+contexto do processamento da imagem binarizada, os pixels correspondentes ao ponteiro
+isolado (onde a intensidade lógica é máxima) são tratados como uma nuvem de N pontos
+bidimensionais, descritos pelo conjunto de coordenadas espaciais P = {(xi , yi )}N
+i=1 . O
+primeiro passo do algoritmo consiste em calcular o centroide estatístico (x̄, ȳ) dessa nuvem
+de pontos, o qual corresponde ao centro de rotação estimado da agulha no referencial da
+imagem:
+N
+N
+1 X
+1 X
+x̄ =
+xi , ȳ =
+yi
+(12)
+N i=1
+N i=1
+Em seguida, para avaliar como os pixels se distribuem ao redor desse centro, computa-se
+a matriz de covariância espacial C (de dimensão 2 × 2). Esta matriz descreve a variância
+e a correlação geométrica das posições dos pixels nos eixos cartesianos:
+"
+#
+N
+(xi − x̄)2
+(xi − x̄)(yi − ȳ)
+1 X
+(13)
+C=
+N i=1 (xi − x̄)(yi − ȳ)
+(yi − ȳ)2
+A extração da orientação geométrica baseia-se na decomposição espectral desta matriz de
+covariância. Calculam-se os autovalores (λ) e os respectivos autovetores (v) resolvendose a equação característica Cv = λv. O autovetor v1 = [v1x , v1y ]T , associado ao maior
+autovalor (λ1 ), aponta para a direção de maior variância espacial dos dados. Geometricamente, isso representa o eixo longitudinal (comprimento principal) do ponteiro.
+Por fim, a angulação θ do ponteiro em relação à horizontal da imagem é obtida calculandose o arco-tangente das componentes espaciais desse autovetor dominante:
+ 
+v1y
+(14)
+θ = arctan
+v1x
+8. Conversão para o Valor Estimado: Conhecendo-se o ângulo θ do ponteiro, o valor
+de pressão (ou indicação respectiva) medido pelo manômetro é obtido através de uma
+interpolação linear para a escala de 0 a 100.
+
+Figura 21: Imagem do resultado da detecção da indicação do manômetro.
+
+5.4
+
+Máquinas de Estados das Missões
+
+Para organizar o comportamento autônomo do drone durante as missões da competição,
+a lógica de controle de alto nível foi modelada utilizando o conceito de Máquinas de Estados
+Finitos (FSM - Finite State Machine). Uma FSM é um modelo matemático de computação
+ideal para sistemas reativos, onde a aeronave encontra-se em um único estado ativo em um
+27
+
+dado instante de tempo, transitando para novos estados de acordo com gatilhos de eventos,
+temporizadores ou o cumprimento de condições lógicas.
+Na arquitetura de software desenvolvida, a máquina de estados foi encapsulada e executada
+como um nó independente dentro do ecossistema ROS2. Para gerenciar o compartilhamento
+de informações entre os diferentes estados sem criar um forte acoplamento de código, adotouse o Padrão de Projeto Blackboard. Este padrão atua como um repositório central de dados
+(memória global da FSM), permitindo que qualquer estado leia ou escreva parâmetros de voo
+dinâmicos (como coordenadas de alvos detectados pela visão ou alturas de referência) de forma
+assíncrona e modular.
+Visando garantir a manutenibilidade, a escalabilidade e a clareza do código, a implementação
+da FSM foi estruturada em uma arquitetura hierárquica de quatro camadas de abstração:
+1. Biblioteca principal: Contém a infraestrutura matemática e lógica fundamental da
+FSM (classes de estado, gerenciamento de transições e instancialização do Blackboard ).
+É estritamente independente de dependências específicas da equipe ou de hardware.
+2. Abstração da Aeronave: Atua como uma API que traduz comandos lógicos para a
+controladora de voo PX4. Esta camada abstrai a complexidade da comunicação via MAVLink/ROS2 e também abriga a implementação matemática de controladores clássicos,
+como a classe do controlador PID.
+3. Estados comuns: Alguns estados são comuns à todas as missões. Essa camada inclui
+comportamentos encapsulados como Takeoff, Landing, Align e GoToWaypoint.
+4. Estados específicos para cada missão: Utiliza os recursos de todas as camadas inferiores para implementar as máquinas de estados específicas para cada missão.
+5.4.1
+
+Estados Comuns
+
+Os estados classificados na Camada 3 são definidos da seguinte forma:
+• Takeoff: Este estado governa a subida saturando os comandos do motor através de um
+limiar de velocidade máxima definida. A transição de saída deste estado só ocorre quando
+o sistema confirma que o drone atingiu a altitude desejada, utilizando uma tolerância
+geométrica configurável para o erro de posição vertical.
+• Landing: Para evitar danos estruturais provenientes de impactos bruscos com o solo,
+o estado de aterrissagem não envia um comando de velocidade constante para o solo.
+Em vez disso, implementou-se um perfil de descida assintótica governado por decaimento
+exponencial. Baseando-se na altura inicial no momento em que o estado é ativado, na
+velocidade vertical máxima permitida (vmax ) e em uma constante de tempo calculada (k),
+a velocidade de descida de referência no instante t é dada por:
+v(t) = vmax · e−k·t
+
+(15)
+
+Com essa formulação, a aeronave perde velocidade de forma proporcional à sua proximidade com o chão. Contudo, para evitar que o drone passe tempo indefinido pairando
+devido ao decaimento matemático que tende a zero, impõe-se um limite de velocidade
+mínima. O sistema também pré-calcula um tempo de timeout (tempo estimado de descida acrescido de uma margem de segurança). Assim que esse timeout expira, assume-se
+que o toque com o solo ocorreu, a velocidade é bruscamente zerada (corte de motores) e
+o estado conclui sua execução.
+28
+
+• Align: O objetivo do estado de alinhamento é garantir que o centro de massa da aeronave
+esteja ortogonal à vertical do alvo no solo seja este uma bases, uma mangueiras, um
+manômetro ou qualquer outro objeto.
+Como as coordenadas extraídas pelos algoritmos de visão estão sujeitas a ruídos e falhas de
+medição, os dados brutos são processados por um Filtro de Kalman [13] para suavizar o
+sinal e prever a cinemática do alvo mesmo na ausência momentânea de detecções visuais.
+Ao invés de realizar o controle visual baseado em imagem, no qual o erro é calculado
+diretamente em pixels, adotou-se o Position-Based Visual Servoing (PBVS) [10]. Essa
+escolha se justifica pelo fato de que o tamanho físico que um pixel representa no mundo
+real varia drasticamente conforme a altitude (z) do drone se altera. Tentar estimar a
+velocidade de um alvo na matriz do filtro em "pixels por segundo"carece de sentido físico;
+qualquer flutuação de altitude (drift) corromperia a matriz de covariância e desestabilizaria o estimador. Portanto, antes de alimentar o Filtro de Kalman, as coordenadas
+(u, v) da imagem são obrigatoriamente convertidas para distâncias métricas reais (x, y)
+no plano do solo, utilizando o modelo pinhole e os dados de altitude.
+Para a etapa de predição do Filtro de Kalman, adota-se a hipótese simplificadora de
+que as manobras de alinhamento ocorrem em baixa velocidade, resultando em ângulos
+de arfagem (pitch) e rolagem (roll ) suficientemente pequenos para que uma modelagem
+linear seja válida.
+Como os alvos em solo são estáticos, o movimento aparente no campo de visão da câmera
+é puramente uma consequência da translação do próprio drone. Logo, o vetor velocidade
+do objeto em relação à câmera é exatamente o oposto do vetor velocidade da aeronave
+(vobj = −vdrone ). No entanto, os referenciais diferem, pois o drone opera no sistema FRD
+(x para frente, y para a direita), enquanto a câmera segue o padrão da biblioteca OpenCV
+(x para a direita, y para baixo). Utilizando a matriz de rotação da câmera vertical (Rv )
+deduzida na seção do Modelo Pinhole, a propagação do estado linear do objeto (xk , yk )
+ao longo de um intervalo de tempo ∆t é modelada por:
+"
+#
+"
+# "
+#
+−vx,drone
+xk
+xk−1
+(16)
+=
++ ∆t · Rv
+−vy,drone
+yk
+yk−1
+onde as velocidades do drone são obtidas diretamente da odometria inercial da controladora de voo.
+No ecossistema ROS2, os nós operam de forma distribuída e em frequências distintas. Os
+dados de velocidade odômetrica (PX4 ) são publicados em altíssima frequência, o nó do
+Filtro de Kalman opera em uma frequência intermediária e o nó de processamento de
+Visão Computacional opera na menor frequência do sistema, devido ao seu maior custo
+computacional. O Filtro de Kalman tira proveito dessa assincronia executando múltiplas
+predições (utilizando a matemática linear de velocidades para propagar a posição do alvo
+cegamente) entre cada atualização de estado (quando um novo frame é processado e a
+coordenada real da câmera é recebida para ancorar a predição). Essa técnica garante que
+o controlador final receba um sinal de erro contínuo, suave e em alta taxa de atualização,
+mitigando a latência da visão.
+Por fim, as posições filtradas em metros são submetidas a um Controlador ProporcionalIntegral-Derivativo (PID) [26] independente para cada eixo (x, y). O PID calcula as
+velocidades corretivas necessárias e as publica na rede ROS2, fechando a malha de controle. O estado avalia iterativamente a norma do vetor de erro posicional. Quando a
+posição do alvo é confinada a uma margem de tolerância aceitável pré-definida, o estado
+de alinhamento despacha um comando de interrupção cinemática, fixando o drone naquele
+29
+
+setpoint (x, y, z) no espaço tridimensional e declarando a transição de saída da FSM como
+concluída, liberando o sistema para a próxima etapa da missão.
+
+5.5
+
+Camadas de Segurança (Failsafe e Geofence)
+
+Em conformidade com as diretrizes do regulamento, foram implementadas três camadas de
+segurança. O Geofence primário do PX4 foi configurado para impor um limite virtual cilíndrico
+com teto máximo de 7,0 metros [2]. A violação desse limite ou a perda da conexão de telemetria
+(Data Link Loss) engatilha automaticamente o modo Failsafe, forçando a aeronave a realizar
+um pouso vertical imediato e desarmar os motores.
+
+30
+
+6
+
+Testes e Validação
+
+Para assegurar a confiabilidade dos subsistemas, a segurança da operação e o cumprimento
+dos requisitos do edital, o projeto foi submetido a um ciclo iterativo de validações práticas.
+A metodologia adotada focou na quantificação do desempenho em condições de voo reais,
+abrangendo a análise estrutural, a autonomia energética e a robustez dos algoritmos de controlo
+e perceção.
+
+6.1
+
+Testes dos Sistemas de Segurança
+
+O rigor com a operação segura pautou a rotina de validação em campo. As três camadas
+de segurança exigidas pelo regulamento [2] foram testadas ativamente com a aeronave em voo
+real:
+• Failsafe por Perda de Telemetria: Em voo pairado, a ligação com a estação de solo
+foi intencionalmente interrompida. O firmware PX4 identificou a perda de comunicação
+em, aproximadamente, 2 segundos e assumiu o controlo, executando o pouso vertical
+estabilizado e o posterior desarme dos motores em 100% das tentativas.
+• Geofence (Cerca Virtual): O teto máximo de voo foi parametrizado para 7,0 metros
+em relação à base. Ao comandar a aeronave para ultrapassar esta barreira no modo de voo
+manual/estabilizado, o sistema rejeitou o comando de subida e forçou a descida abortiva
+imediata.
+• Kill-Switch via Software: O nó de supervisão do ROS2 foi acionado durante a translação da aeronave. O sinal de emergência sobrepôs-se à máquina de estados, e o veículo
+interrompeu a missão instantaneamente, executando o pouso seguro.
+
+6.2
+
+Análise de Vibração e Integridade do Frame
+
+Para garantir que a fusão de dados do estimador EKF2 não fosse corrompida por ruído
+mecânico, realizou-se uma análise de vibração espectral. A aeronave executou um voo pairado
+(hover ) estabilizado, e os registos (logs) da Pixhawk 6X foram extraídos e analisados.
+Durante a janela de voo, os níveis de vibração nos eixos x, y e z mantiveram-se em média
+próximos a 1, 0 m/s2 , muito abaixo do limiar da zona de alerta, situando-se plenamente na zona
+de operação segura (verde). O único transiente registrado, que atingiu um pico aproximado de
+5, 9 m/s2 , ocorreu no exato momento do toque com o solo durante o pouso, como é esperado
+da dinâmica de impacto.
+Este resultado comprova a eficácia dos dampers (amortecedores) da controladora e a rigidez
+do frame X500 adaptado, garantindo que a Unidade de Medida Inercial (IMU) e o sensor
+Optical Flow MTF-01 operem sem degradação do sinal físico.
+
+31
+
+Figura 22: Espectro de vibração registado pela Pixhawk 6X durante o voo pairado, evidenciando
+níveis dentro das margens de segurança.
+
+6.3
+
+Rejeição a Perturbações Externas
+
+A estabilidade posicional é um fator determinante, especialmente para a Missão 2 (Hang the
+Right Wire), que exige precisão milimétrica. Para validar a malha de controlo PID em conjunto
+com a fusão de dados do GPS e do Optical Flow, a aeronave foi submetida a perturbações
+externas controladas.
+Durante o voo pairado a 2 metros de altura, aplicaram-se impulsos laterais físicos no frame.
+O sistema detetou o erro posicional e calculou a resposta corretiva de forma praticamente instantânea. O Optical Flow demonstrou uma elevada taxa de rejeição ao vento cruzado (estimado
+em 10 km/h no dia do ensaio), mantendo a aeronave contida num raio de 0,10 metros em relação
+ao setpoint original.
+
+6.4
+
+Bateria e Autonomia
+
+A configuração de hardware embarcado, incluindo a Jetson Orin Nano e a dupla de câmaras, exige um dimensionamento energético rigoroso. Com a aeronave no seu peso máximo de
+decolagem (MTOW) de 2, 85 ± 0, 05 kg, mediu-se o consumo elétrico num cenário de missão
+completa.
+Durante a operação com os algoritmos de visão e o uXRCE-DDS ativos, o consumo médio
+de corrente estabilizou em [INSERIR CORRENTE] A. Utilizando a bateria 6S de 7200 mAh
+(60C), a autonomia de voo real foi validada em 15 minutos até a tensão descer ao limite seguro
+de 3.5V por célula. Este valor assegura que o tempo regulamentar máximo de 5 minutos por
+missão pode ser cumprido com uma ampla margem de segurança.
+
+32
+
+7
+
+Conclusão
+
+O projeto desenvolvido pela equipe eVTOL ITA para a competição Eletroquad SAE 2026
+resultou na concepção de uma aeronave autônoma robusta, que respeita rigorosamente as restrições da classe S500 e as normativas de segurança estabelecidas.
+A adoção de uma arquitetura modular tanto no hardware quanto no software provou ser essencial para atender aos diferentes perfis operativos exigidos pelas missões (Bouncing 2.0, Hang
+the Right Wire e Faulty or Not?), mantendo a complexidade de transição logística mínima. A
+incorporação do sistema de optical flow resultou em um aprimoramento tangível na precisão do
+posicionamento, assegurando uma fixação de coordenadas locais altamente estável e responsiva.
+As métricas obtidas durante o ciclo extensivo de testes, com precisão no sistema de visão
+computacional atingindo a marca de [X]% em validação real e tempos de processamento totalmente compatíveis com as dinâmicas de malha fechada, comprovam a maturidade do sistema.
+Dessa forma, a aeronave atende plenamente aos requisitos de engenharia demandados e está
+capacitada para a execução autônoma das tarefas em ambiente competitivo.
+
+33
+
+Referências
+[1] John D Anderson Jr. Fundamentals of aerodynamics. Tata McGraw-Hill Education, 2011.
+[2] SAE Brasil. Regulamento da competição sae 2026. https://arquivos.saebrasil.org.
+br/2026/EletroQuad/Regulamento_EletroQuad_2026_portugues_rev2.1.pdf, 2026.
+Accessed: 2026-04-05.
+[3] T. M. Cabreira, L. B. Brisolara, and P. R. Ferreira. Survey on coverage path planning
+with unmanned aerial vehicles. Drones, 3(1):4, jan 2019.
+[4] John Canny. A computational approach to edge detection. IEEE Transactions on Pattern
+Analysis and Machine Intelligence, PAMI-8(6):679–698, 1986.
+[5] David H. Douglas and Thomas K. Peucker. Algorithms for the reduction of the number
+of points required to represent a digitized line or its caricature. Cartographica: The International Journal for Geographic Information and Geovisualization, 10(2):112–122, 1973.
+[6] eProsima. Micro xrce-dds documentation. https://micro-xrce-dds.docs.eprosima.
+com/en/latest/, 2026. Acesso em: 9 abr. 2026.
+[7] eVTOL ITA.
+Px4 flight review log.
+https://review.px4.io/plot_app?log=
+f24dbc89-3d11-4d7c-a5ac-f2df08153919, 2026. Accessed: 2026-04-05.
+[8] Holybro.
+Standard m10/m9n/m8n gps overview.
+https://docs.holybro.com/
+gps-and-rtk-system/m8n-m9n-m10-gps/standard-m10-m9n-m8n-gps/overview, 2026.
+Acesso em: 10 abr. 2026.
+[9] Ming-Kuei Hu. Visual pattern recognition by moment invariants. IRE Transactions on
+Information Theory, 8(2):179–187, 1962.
+[10] Seth Hutchinson, Gregory D. Hager, and Peter I. Corke. A tutorial on visual servo control.
+IEEE Transactions on Robotics and Automation, 12(5):651–670, 1996.
+[11] JaidedAI. Easyocr - github repository. https://github.com/JaidedAI/EasyOCR?tab=
+readme-ov-file, 2026. Acesso em: 9 abr. 2026.
+[12] Ian T. Jolliffe and Jorge Cadima. Principal component analysis: a review and recent
+developments. Philosophical Transactions of the Royal Society A: Mathematical, Physical
+and Engineering Sciences, 374(2065):20150202, 2016.
+[13] Rudolph Emil Kalman. A new approach to linear filtering and prediction problems. Transactions of the ASME–Journal of Basic Engineering, 82(Series D):35–45, 1960.
+[14] Anis Koubâa et al. Micro air vehicle link (mavlink) in a nutshell: A survey, 2019.
+[15] Massachusetts Institute of Technology (MIT). 2.160 system identification, estimation, and
+learning: Lecture notes no. 6. Notas de aula, 2006.
+[16] Thiago Nunes de Morais, Alexandre Boa Ventura Oliveira, and Fernando Walter. Gps:
+Uma ferramenta para o estudo do canal satélite-receptor. In Anais do XXVII Simpósio
+Brasileiro de Telecomunicações (SBrT 2009), Blumenau, 2009. SBrT.
+[17] OpenCV. Detection of aruco markers - opencv 3.4 documentation. https://docs.opencv.
+org/3.4/d5/dae/tutorial_aruco_detection.html, 2026. Acesso em: 9 abr. 2026.
+34
+
+[18] Nobuyuki Otsu. A threshold selection method from gray-level histograms. IEEE Transactions on Systems, Man, and Cybernetics, 9(1):62–66, 1979.
+[19] Stephen M. Pizer et al. Contrast-limited adaptive histogram equalization: Speed and
+effectiveness. Technical report, Medical Image Display Research Group, University of
+North Carolina, Chapel Hill, NC, 1990.
+[20] PX4 Autopilot. uxrce-dds (microxrce-dds) - px4 user guide. https://docs.px4.io/main/
+en/middleware/uxrce_dds, 2026. Acesso em: 9 abr. 2026.
+[21] Urs Ramer. An iterative procedure for the polygonal approximation of plane curves.
+Computer Graphics and Image Processing, 1(3):244–256, 1972.
+[22] Daniel P Raymer. Aircraft design: a conceptual approach. Aiaa, 1992.
+[23] Jingnan Shi. Minimal solvers for perspective-n-point (pnp). https://jingnanshi.com/
+blog/pnp_minimal.html, 2026. Acesso em: 9 abr. 2026.
+[24] Ken Shoemake. Quaternions. Technical report, Department of Computer and Information
+Science, University of Pennsylvania, Philadelphia, 1985.
+[25] Irwin Sobel. History and definition of the so-called "sobel operator", more appropriately
+named the sobel-feldman operator, 2014.
+[26] Emil Sundström et al.
+Reference implementation of the pid controller.
+PapersOnLine, 58(7):370–375, 2024.
+
+IFAC-
+
+[27] Satoshi Suzuki and Keiichi Abe. Topological structural analysis of digitized binary images
+by border following. Computer Vision, Graphics, and Image Processing, 30(1):32–46, 1985.
+[28] Angel G. Valdenebro. Visualizing rotations and composition of rotations with rodrigues’
+vector. European Journal of Physics, 2026. Aceito para publicação.
+[29] Zhengyou Zhang. A flexible new technique for camera calibration. Technical Report MSRTR-98-71, Microsoft Research, Redmond, WA, 1998. Atualizado em 2008.
+
+35
+
+

@@ -5,7 +5,7 @@ if [ -f install/setup.bash ]; then
     source install/setup.bash
 fi
 
-export GZ_SIM_RESOURCE_PATH=$GZ_SIM_RESOURCE_PATH:~/PX4-Autopilot/Tools/simulation/gz/models:~/PX4-Autopilot/Tools/simulation/gz/worlds:~/PX4-gazebo-models/models:~/PX4-gazebo-models/worlds
+export GZ_SIM_RESOURCE_PATH=$GZ_SIM_RESOURCE_PATH:$HOME/PX4-Autopilot/Tools/simulation/gz/models:$HOME/PX4-Autopilot/Tools/simulation/gz/worlds:$HOME/PX4-gazebo-models/models:$HOME/PX4-gazebo-models/worlds
 
 cd ~/PX4-Autopilot
 

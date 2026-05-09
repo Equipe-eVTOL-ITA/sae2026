@@ -13,3 +13,19 @@ mission_1_node:
     # Landing parameters
     landing_velocity_max: 0.5
     landing_velocity_min: 0.1
+
+    # Mission 1 Parameters
+    z_max_search: -2.5
+    aruco_spiral_step: 2.5
+    aruco_spiral_arc_step: 0.5
+    search_aruco_velocity: 0.5
+    aruco_persistence_frames: 3.0
+    aruco_tolerance: 0.15
+    aruco_kp_x: 0.6
+    aruco_kp_y: 0.6
+    base_spiral_step: 1.0
+    base_tolerance: 0.10
+    base_kp_x: 0.5
+    base_kp_y: 0.5
+    shape_id_altitude: -1.0
+    shape_id_velocity: 0.3
