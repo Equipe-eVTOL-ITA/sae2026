@@ -10,7 +10,7 @@
 
 class RiseState : public fsm::State {
 public:
-    RiseState() : fsm::State() {}
+    RiseState() : fsm::State(), target_z_(0.0f), tolerance_(0.15f) {}
 
     void on_enter(fsm::Blackboard &blackboard) override {
         drone_ = *blackboard.get<std::shared_ptr<Drone>>("drone");
@@ -19,29 +19,43 @@ public:
         drone_->log("");
         drone_->log("STATE: RISE");
 
-        float delta_z = *blackboard.get<float>("rise_delta_z");
-        
-        // drone_ z is negative in FRD (up is negative). So we subtract to rise.
-        target_z_ = drone_->getLocalPosition().z() - delta_z; 
-        tolerance_ = *blackboard.get<float>("position_tolerance");
+        // Absolute target altitude (NED, negative = above ground).
+        // Using a fixed altitude prevents cumulative drift when re-entering.
+        target_z_ = blackboard.contains("rise_target_z")
+            ? *blackboard.get<float>("rise_target_z")
+            : static_cast<float>(drone_->getLocalPosition().z()) - 2.0f;
+
+        tolerance_ = blackboard.contains("position_tolerance")
+            ? *blackboard.get<float>("position_tolerance") : 0.15f;
+
+        drone_->log("Rising to z=" + std::to_string(target_z_));
     }
 
     std::string act(fsm::Blackboard &blackboard) override {
         (void)blackboard;
         if (drone_ == nullptr) return "ERROR";
 
-        float current_z = drone_->getLocalPosition().z();
-        float err = std::abs(target_z_ - current_z);
+        auto pos = drone_->getLocalPosition();
+        float err = std::abs(target_z_ - static_cast<float>(pos.z()));
 
         if (err < tolerance_) {
-            move_local_by_waypoint(drone_, drone_->getLocalPosition(), 0.0f);
+            // Hold at target altitude (direct setLocalPosition — speed=0 is no-op)
+            drone_->setLocalPosition(
+                static_cast<float>(pos.x()),
+                static_cast<float>(pos.y()),
+                target_z_,
+                static_cast<float>(drone_->getOrientation()[2])
+            );
             drone_->log("Rise completed");
             return "RISE_COMPLETED";
         }
 
-        // Move to target_z (maintaining current X, Y)
-        Eigen::Vector3d pos = drone_->getLocalPosition();
-        drone_->setLocalPosition(pos.x(), pos.y(), target_z_, drone_->getOrientation().z());
+        drone_->setLocalPosition(
+            static_cast<float>(pos.x()),
+            static_cast<float>(pos.y()),
+            target_z_,
+            static_cast<float>(drone_->getOrientation()[2])
+        );
 
         return "";
     }

@@ -68,7 +68,11 @@ public:
 
         if (!is_detected) {
             ++lost_detection_count_;
-            move_local_by_waypoint(drone_, drone_->getLocalPosition(), 0.0f);
+            // speed=0 is a no-op in move_local_by_waypoint — hold directly
+            auto cur = drone_->getLocalPosition();
+            drone_->setLocalPosition(
+                static_cast<float>(cur.x()), static_cast<float>(cur.y()),
+                static_cast<float>(cur.z()), static_cast<float>(drone_->getOrientation()[2]));
             if (lost_detection_count_ < max_lost_detection_count_) {
                 return "";
             }

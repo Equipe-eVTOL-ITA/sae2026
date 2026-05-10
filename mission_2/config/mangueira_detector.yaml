@@ -1,33 +1,37 @@
 mangueira_detector:
   ros__parameters:
-    image_topic: '/camera/compressed'
+    image_topic: '/vertical_camera/compressed'
     processing_frequency: 10.0  # Hz
     confidence_threshold: 0.5
-    
+
     # Hose detection parameters
     min_hose_area: 50
     max_hose_area: 1000
     morph_kernel_size: 3
     morph_iterations: 2
-    
+
     # Hose shape constraints
-    min_aspect_ratio: 0.0       # Very relaxed
-    max_aspect_ratio: 200.0     # Very high for thin objects
+    min_aspect_ratio: 0.0
+    max_aspect_ratio: 200.0
     min_hose_length: 1
     max_hose_width: 800
-    
-    # Red hose HSV parameters (Range 1: 0-10°)
+
+    # Red hose HSV (Range 1: pure red, H=0-12°)
+    # Expanded from 0-10 to 0-12 to catch slightly warmer reds.
+    # S_min raised from 50 to 90: environment background has S mean≈94,
+    # so 90 excludes most of it while still catching saturated hose.
     red_lower1_h: 0
-    red_lower1_s: 50
-    red_lower1_v: 30
-    red_upper1_h: 10
+    red_lower1_s: 90
+    red_lower1_v: 40
+    red_upper1_h: 12
     red_upper1_s: 255
     red_upper1_v: 255
-    
-    # Red hose HSV parameters (Range 2: 170-180°)
-    red_lower2_h: 170
-    red_lower2_s: 50
-    red_lower2_v: 30
-    red_upper2_h: 200
+
+    # Red hose HSV (Range 2: red wrap-around, H=165-180°)
+    # Corrected upper bound from 200 to 180 (OpenCV H max is 179).
+    red_lower2_h: 165
+    red_lower2_s: 90
+    red_lower2_v: 40
+    red_upper2_h: 180
     red_upper2_s: 255
     red_upper2_v: 255
