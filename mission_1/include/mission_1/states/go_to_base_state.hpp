@@ -10,7 +10,7 @@
 
 class GoToBaseState : public fsm::State {
 public:
-    GoToBaseState() : fsm::State() {}
+    GoToBaseState() : fsm::State(), entry_z_(0.0f) {}
 
     void on_enter(fsm::Blackboard &blackboard) override {
         drone_ = *blackboard.get<std::shared_ptr<Drone>>("drone");
@@ -27,6 +27,8 @@ public:
 
         kp_x_ = blackboard.get<float>("base_kp_x") ? *blackboard.get<float>("base_kp_x") : 0.5f;
         kp_y_ = blackboard.get<float>("base_kp_y") ? *blackboard.get<float>("base_kp_y") : 0.5f;
+
+        entry_z_ = static_cast<float>(drone_->getLocalPosition().z());
 
         aligned_counter_ = 0;
         miss_counter_ = 0;
@@ -47,7 +49,15 @@ public:
                 drone_->log("Base lost! Returning to search.");
                 return "BASE_LOST";
             }
-            move_local_by_waypoint(drone_, drone_->getLocalPosition(), 0.0f);
+            // Directly set PX4 setpoint — move_local_by_waypoint with speed=0 is a
+            // no-op (little_goal = current_pos regardless of target z), so we bypass it.
+            auto cur = drone_->getLocalPosition();
+            drone_->setLocalPosition(
+                static_cast<float>(cur.x()),
+                static_cast<float>(cur.y()),
+                entry_z_,
+                static_cast<float>(drone_->getOrientation()[2])
+            );
             return "";
         }
 
@@ -63,7 +73,10 @@ public:
         vx = std::clamp(vx, -max_v, max_v);
         vy = std::clamp(vy, -max_v, max_v);
 
-        move_local_by_speed(drone_, vx, vy, 0.0f);
+        // Gently correct altitude back to entry z if PX4 drifts (max 0.5 m/s)
+        float cur_z = static_cast<float>(drone_->getLocalPosition().z());
+        float vz = std::clamp((entry_z_ - cur_z) / 0.05f, -0.5f, 0.5f);
+        move_local_by_vel_as_position(drone_, vx, vy, vz);
 
         if (std::abs(err_x) < tolerance_ && std::abs(err_y) < tolerance_) {
             aligned_counter_++;
@@ -75,7 +88,7 @@ public:
             drone_->log("Base err=(" + std::to_string(err_x) + "," + std::to_string(err_y)
                         + ") aligned=" + std::to_string(aligned_counter_) + "/20");
 
-        if (aligned_counter_ > 20) {
+        if (aligned_counter_ > 10) {
             drone_->log("Aligned with Base! Ready to land.");
             return "ALIGNED";
         }
@@ -87,6 +100,7 @@ private:
     std::shared_ptr<Drone> drone_;
     float tolerance_;
     float kp_x_, kp_y_;
+    float entry_z_;
     int aligned_counter_;
     int miss_counter_;
     int tick_;

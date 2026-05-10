@@ -10,7 +10,8 @@
 
 class GoToArucoState : public fsm::State {
 public:
-    GoToArucoState() : fsm::State() {}
+    GoToArucoState() : fsm::State(),
+        entry_z_(0.0f), align_frames_when_known_(5), align_frames_when_unknown_(10) {}
 
     void on_enter(fsm::Blackboard &blackboard) override {
         drone_ = *blackboard.get<std::shared_ptr<Drone>>("drone");
@@ -27,6 +28,12 @@ public:
 
         kp_x_ = blackboard.get<float>("aruco_kp_x") ? *blackboard.get<float>("aruco_kp_x") : 0.5f;
         kp_y_ = blackboard.get<float>("aruco_kp_y") ? *blackboard.get<float>("aruco_kp_y") : 0.5f;
+
+        align_frames_when_known_ = blackboard.contains("aruco_align_frames")
+            ? static_cast<int>(*blackboard.get<float>("aruco_align_frames")) : 5;
+        align_frames_when_unknown_ = align_frames_when_known_ * 2;
+
+        entry_z_ = static_cast<float>(drone_->getLocalPosition().z());
 
         aligned_counter_ = 0;
         miss_counter_ = 0;
@@ -47,9 +54,15 @@ public:
                 drone_->log("ArUco lost! Returning to search.");
                 return "ARUCO_LOST";
             }
-            // Hover and wait — the spiral left residual velocity that takes
-            // a few ticks to arrest; the ArUco typically reappears within 200ms.
-            move_local_by_waypoint(drone_, drone_->getLocalPosition(), 0.0f);
+            // Hold position with fixed altitude — move_local_by_waypoint(speed=0) is
+            // a no-op for z correction, so we call setLocalPosition directly.
+            auto cur = drone_->getLocalPosition();
+            drone_->setLocalPosition(
+                static_cast<float>(cur.x()),
+                static_cast<float>(cur.y()),
+                entry_z_,
+                static_cast<float>(drone_->getOrientation()[2])
+            );
             return "";
         }
 
@@ -67,7 +80,7 @@ public:
         vx = std::clamp(vx, -max_v, max_v);
         vy = std::clamp(vy, -max_v, max_v);
 
-        move_local_by_speed(drone_, vx, vy, 0.0f);
+        move_local_by_vel_as_position(drone_, vx, vy, 0.0f);
 
         bool target_calculated = blackboard.contains("target_calculated") &&
                                  *blackboard.get<bool>("target_calculated");
@@ -78,8 +91,7 @@ public:
             aligned_counter_ = 0;
         }
 
-        // Fewer frames required once the target is already known
-        int required_aligned = target_calculated ? 10 : 20;
+        int required_aligned = target_calculated ? align_frames_when_known_ : align_frames_when_unknown_;
 
         if (tick_++ % 10 == 0)
             drone_->log("ArUco err=(" + std::to_string(err_x) + "," + std::to_string(err_y)
@@ -115,8 +127,11 @@ private:
     std::shared_ptr<Drone> drone_;
     float tolerance_;
     float kp_x_, kp_y_;
+    float entry_z_;
     int aligned_counter_;
     int miss_counter_;
     int tick_;
+    int align_frames_when_known_;
+    int align_frames_when_unknown_;
     static constexpr int max_misses_ = 30;  // 1.5s at 20Hz — allows for inertia settling after spiral
 };

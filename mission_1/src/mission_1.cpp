@@ -3,6 +3,7 @@
 #include <map>
 #include <string>
 #include <variant>
+#include <cmath>
 
 #include <rclcpp/rclcpp.hpp>
 #include "fsm/fsm.hpp"
@@ -10,6 +11,7 @@
 #include "custom_msgs/msg/bouncing_detection.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
+#include "std_msgs/msg/string.hpp"
 
 // Standard states from stdstates
 #include "stdstates/arming_state.hpp"
@@ -144,7 +146,6 @@ public:
             // Mission 1 Parameters
             {"z_max_search", -2.5},
             {"aruco_spiral_step", 2.5},
-            {"aruco_spiral_arc_step", 0.5},
             {"search_aruco_velocity", 0.4},
             {"aruco_persistence_frames", 3.0},
             {"aruco_tolerance", 0.15},
@@ -156,6 +157,10 @@ public:
             {"base_kp_y", 0.5},
             {"shape_id_altitude", -1.0},
             {"shape_id_velocity", 0.3},
+            {"base_persistence_frames", 3.0},
+            {"base_cam_scale", 0.7},
+            {"base_max_err_radius", 0.7},
+            {"aruco_align_frames", 5.0},
         };
 
         auto params = declareAndGetParameters(default_params);
@@ -171,6 +176,9 @@ public:
 
         // Trajectory publisher for RViz (nav_msgs/Path in ENU frame)
         path_pub_ = this->create_publisher<nav_msgs::msg::Path>("/drone_trajectory", 10);
+
+        // Publishes whenever a base is seen for the first time (goes to rosbag)
+        discovered_bases_pub_ = this->create_publisher<std_msgs::msg::String>("/discovered_bases", 10);
         trajectory_.header.frame_id = "map";
 
         // Subscribes to the computer vision node
@@ -226,6 +234,60 @@ private:
             else
                 RCLCPP_INFO(this->get_logger(), "[CV] Target base LOST");
             prev_target_base_in_sight_ = msg->target_base_in_sight;
+        }
+
+        // Base position cache: estimate world position from camera error + altitude.
+        // Camera is downward-facing (FRD): err_y<0=forward(+X body), err_x>0=right(+Y body).
+        // Only update if the new estimate has smaller error radius (more confident).
+        {
+            float* cam_scale_ptr = fsm_->blackboard_get<float>("base_cam_scale");
+            float cam_scale = cam_scale_ptr ? *cam_scale_ptr : 0.7f;
+            float alt = -static_cast<float>(drone_->getLocalPosition().z());
+            float yaw = static_cast<float>(drone_->getOrientation()[2]);
+            auto  dpos = drone_->getLocalPosition();
+
+            float* max_err_ptr = fsm_->blackboard_get<float>("base_max_err_radius");
+            float max_err_radius = max_err_ptr ? *max_err_ptr : 0.7f;
+
+            auto store_base_pos = [&](const std::string& label, float ex, float ey) {
+                if (label.empty()) return;
+                // Reject bases whose centre is too close to the frame edge — partial
+                // detections (base cut off at the border) produce unreliable positions.
+                if (std::hypot(ex, ey) > max_err_radius) return;
+                float ldx = -ey * alt * cam_scale;
+                float ldy =  ex * alt * cam_scale;
+                float wx  = static_cast<float>(dpos.x())
+                            + ldx * std::cos(yaw) - ldy * std::sin(yaw);
+                float wy  = static_cast<float>(dpos.y())
+                            + ldx * std::sin(yaw) + ldy * std::cos(yaw);
+                float r   = std::max(0.5f, std::hypot(ex, ey) * alt * cam_scale + 0.5f);
+                std::string rk = "known_base_" + label + "_r";
+                float* prev_r = fsm_->blackboard_get<float>(rk);
+                bool is_new = (prev_r == nullptr);
+                if (!prev_r || r < *prev_r) {
+                    fsm_->blackboard_set<float>("known_base_" + label + "_x", wx);
+                    fsm_->blackboard_set<float>("known_base_" + label + "_y", wy);
+                    fsm_->blackboard_set<float>(rk, r);
+                }
+                if (is_new) {
+                    std::string discovery = "[DISCOVERY] " + label +
+                        " @ (" + std::to_string(wx) + ", " + std::to_string(wy) +
+                        ") r=" + std::to_string(r);
+                    RCLCPP_INFO(this->get_logger(), "%s", discovery.c_str());
+                    std_msgs::msg::String pub_msg;
+                    pub_msg.data = discovery;
+                    discovered_bases_pub_->publish(pub_msg);
+                }
+            };
+
+            for (size_t i = 0; i < msg->visible_bases.size(); ++i)
+                store_base_pos(msg->visible_bases[i],
+                               msg->visible_bases_x_error[i],
+                               msg->visible_bases_y_error[i]);
+            if (msg->target_base_in_sight)
+                store_base_pos(msg->target_base,
+                               msg->target_base_x_error,
+                               msg->target_base_y_error);
         }
     }
 
@@ -294,6 +356,7 @@ private:
     int  pos_log_counter_           = 0;
 
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr discovered_bases_pub_;
     nav_msgs::msg::Path trajectory_;
 };
 

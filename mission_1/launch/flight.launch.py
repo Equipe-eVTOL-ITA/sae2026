@@ -6,9 +6,10 @@ Launches the drone node, FSM node, and supporting services.
 
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from launch.actions import DeclareLaunchArgument, TimerAction
+from launch.actions import DeclareLaunchArgument, TimerAction, ExecuteProcess
 from launch.substitutions import LaunchConfiguration
 import os
+import datetime
 from ament_index_python.packages import get_package_share_directory
 
 
@@ -16,6 +17,28 @@ def generate_launch_description():
 
     pkg_mission_1 = get_package_share_directory('mission_1')
     flight_params = os.path.join(pkg_mission_1, "config", "flight.yaml")
+
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    bag_dir = os.path.expanduser(f'~/evtol/mission_logs/mission_1_{timestamp}')
+    bag_topics = [
+        '/rosout',
+        '/telemetry/logs',
+        '/telemetry/drone_status',
+        '/telemetry/position',
+        '/telemetry/system_health',
+        '/drone_trajectory',
+        '/bouncing_detection',
+        '/discovered_bases',
+        '/fmu/out/vehicle_local_position',
+        '/fmu/out/vehicle_status',
+        '/fmu/out/battery_status',
+        '/fmu/in/trajectory_setpoint',
+        '/fmu/in/vehicle_command',
+    ]
+    bag_record = ExecuteProcess(
+        cmd=['ros2', 'bag', 'record', '-o', bag_dir] + bag_topics,
+        output='screen'
+    )
 
     # Declare the mission executable argument
     exec_arg = DeclareLaunchArgument(
@@ -59,6 +82,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         exec_arg,
+        bag_record,
         system_health_node,
         bouncing_cv_node,
         webcam_publisher_node,

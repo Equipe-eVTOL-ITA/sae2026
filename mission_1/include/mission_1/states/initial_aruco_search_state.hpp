@@ -77,7 +77,7 @@ public:
         
         // Move slowly upwards. If it reaches the target altitude (within tolerance), start spiral search.
         if (move_local_by_waypoint(drone_, target_pos, 0.5f, 0.3f)) {
-            move_local_by_speed(drone_, 0.0f, 0.0f, 0.0f); // parar
+            move_local_by_vel_as_position(drone_, 0.0f, 0.0f, 0.0f); // hold position
             drone_->log("Reached max search altitude. Switching to spiral search.");
             return "MAX_ALTITUDE_REACHED";
         }
