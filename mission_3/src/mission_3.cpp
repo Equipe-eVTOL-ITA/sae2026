@@ -140,6 +140,7 @@ public:
             {"manometer_approach_altitude",  -1.0},
             {"approach_velocity",            0.3},
             {"approach_hold_ticks",          20.0},
+            {"approach_settle_ticks",        40.0},
 
             //limit
             {"limit_value",50.0},
@@ -159,9 +160,9 @@ public:
             {"y3", 2.5},
             {"z3", -2.2},
 
-            //Landing point
-            {"x4", 5.0},
-            {"y4", 2.5},
+            // Return-to-home point (takeoff origin)
+            {"x4", 0.0},
+            {"y4", 0.0},
             {"z4", -2.2}
 
         };

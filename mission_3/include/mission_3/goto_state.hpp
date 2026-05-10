@@ -73,6 +73,8 @@ public:
 
             if (diff.norm() < position_tolerance_mov_) {
                 drone_->log("target point reached");
+                // Waypoint 4 is the return-to-home point — land directly
+                if (*i_ >= 4) return "TRAJECTORY COMPLETED";
                 return "ON TARGET";
             }
             // Move toward goal with velocity clamping
