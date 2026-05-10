@@ -23,6 +23,11 @@ def generate_launch_description():
         default_value="mission_1",
         description="Executable that implements the mission FSM")
 
+    webcam_publisher_node = Node(
+        package='camera_publisher',
+        executable='webcam',
+        output='screen'
+    )
     # System health monitor (from drone_lib)
     system_health_node = Node(
         
@@ -43,6 +48,7 @@ def generate_launch_description():
     delayed_fsm_node = TimerAction(period=5.0, actions=[fsm_node])
 
     # Vision node
+
     bouncing_cv_node = Node(
         package='bouncing_detector',
         executable='bouncing_detector_node',
@@ -50,11 +56,6 @@ def generate_launch_description():
     )
 
     # Webcam publisher node
-    webcam_publisher_node = Node(
-        package='camera_publisher',
-        executable='webcam',
-        output='screen'
-    )
 
     return LaunchDescription([
         exec_arg,

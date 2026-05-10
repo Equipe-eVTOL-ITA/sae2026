@@ -23,6 +23,19 @@ def generate_launch_description():
         default_value="mission_2",
         description="Executable that implements the mission FSM")
 
+    vertical_camera_node = Node(
+        package='camera_publisher',
+        executable='webcam',
+        output='screen',
+        parameters=[{'camera_name': 'vertical', 'use_compressed': True}]
+    )
+
+    horizontal_camera_node = Node(
+        package='camera_publisher',
+        executable='webcam',
+        output='screen',
+        parameters=[{'camera_name': 'horizontal', 'use_compressed': True}]
+    )
     # System health monitor (from drone_lib)
     system_health_node = Node(
         
@@ -56,28 +69,15 @@ def generate_launch_description():
         output='screen'
     )
 
-    vertical_camera_node = Node(
-        package='camera_publisher',
-        executable='webcam',
-        output='screen',
-        parameters=[{'camera_name': 'vertical', 'use_compressed': True}]
-    )
-
-    horizontal_camera_node = Node(
-        package='camera_publisher',
-        executable='webcam',
-        output='screen',
-        parameters=[{'camera_name': 'horizontal', 'use_compressed': True}]
-    )
 
     delayed_fsm_node = TimerAction(period=5.0, actions=[fsm_node])
 
     return LaunchDescription([
         exec_arg,
+        vertical_camera_node,
+        horizontal_camera_node,
         system_health_node,
         ball_detector_node,
         mangueira_detector_node,
-        vertical_camera_node,
-        horizontal_camera_node,
         delayed_fsm_node
     ])

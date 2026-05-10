@@ -33,6 +33,11 @@ def generate_launch_description():
         default_value="true",
         description="Launch RViz2 for trajectory visualization")
 
+    camera_publisher = Node(
+        package='camera_publisher',
+        executable='webcam',
+        output='screen'
+    )
     # System health monitor (from drone_lib)
     system_health_node = Node(
         
@@ -58,11 +63,6 @@ def generate_launch_description():
         output='screen'
     )
 
-    camera_publisher = Node(
-        package='camera_publisher',
-        executable='webcam',
-        output='screen'
-    )
     
     delayed_fsm_node = TimerAction(period=5.0, actions=[fsm_node])
 
@@ -77,6 +77,7 @@ def generate_launch_description():
     return LaunchDescription([
         exec_arg,
         rviz_arg,
+        camera_publisher,
         system_health_node,
         vision_node,
         delayed_fsm_node,
