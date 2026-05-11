@@ -1,6 +1,7 @@
 #include <memory>
 #include <iostream>
 #include <map>
+#include <set>
 #include <string>
 #include <variant>
 #include <cmath>
@@ -12,6 +13,8 @@
 #include "nav_msgs/msg/path.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "std_msgs/msg/string.hpp"
+#include "visualization_msgs/msg/marker_array.hpp"
+#include "visualization_msgs/msg/marker.hpp"
 
 // Standard states from stdstates
 #include "stdstates/arming_state.hpp"
@@ -160,6 +163,12 @@ public:
             {"base_persistence_frames", 3.0},
             {"base_cam_scale", 0.7},
             {"base_max_err_radius", 0.7},
+            {"base_dedup_radius", 1.5},
+            {"aruco_exclusion_radius", 0.5},
+            {"aruco_kd_x", 0.05},
+            {"aruco_kd_y", 0.05},
+            {"base_kd_x",  0.03},
+            {"base_kd_y",  0.03},
             {"aruco_align_frames", 5.0},
         };
 
@@ -179,6 +188,12 @@ public:
 
         // Publishes whenever a base is seen for the first time (goes to rosbag)
         discovered_bases_pub_ = this->create_publisher<std_msgs::msg::String>("/discovered_bases", 10);
+
+        // Marker array: visualise discovered base positions + labels in RViz2
+        base_markers_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
+            "/mission_1/base_markers", 10);
+        // Publish an empty array immediately so the topic is visible in RViz2 from startup
+        base_markers_pub_->publish(visualization_msgs::msg::MarkerArray{});
         trajectory_.header.frame_id = "map";
 
         // Subscribes to the computer vision node
@@ -236,9 +251,7 @@ private:
             prev_target_base_in_sight_ = msg->target_base_in_sight;
         }
 
-        // Base position cache: estimate world position from camera error + altitude.
-        // Camera is downward-facing (FRD): err_y<0=forward(+X body), err_x>0=right(+Y body).
-        // Only update if the new estimate has smaller error radius (more confident).
+        // Base position cache with spatial deduplication and confidence scoring.
         {
             float* cam_scale_ptr = fsm_->blackboard_get<float>("base_cam_scale");
             float cam_scale = cam_scale_ptr ? *cam_scale_ptr : 0.7f;
@@ -249,11 +262,36 @@ private:
             float* max_err_ptr = fsm_->blackboard_get<float>("base_max_err_radius");
             float max_err_radius = max_err_ptr ? *max_err_ptr : 0.7f;
 
-            auto store_base_pos = [&](const std::string& label, float ex, float ey) {
+            float* dedup_ptr = fsm_->blackboard_get<float>("base_dedup_radius");
+            float dedup_r = dedup_ptr ? *dedup_ptr : 1.5f;
+
+            // Lock ArUco world position only once the target has been identified,
+            // meaning the drone was aligned (errors ≈ 0) → accurate estimate.
+            // Updating during the far-away spiral produces large positional errors
+            // that would incorrectly mask real base detections.
+            if (msg->aruco_detected && !aruco_world_valid_) {
+                bool* tc_ptr = fsm_->blackboard_get<bool>("target_calculated");
+                if (tc_ptr && *tc_ptr) {
+                    float ldx_a = -msg->aruco_y_error * alt * cam_scale;
+                    float ldy_a =  msg->aruco_x_error * alt * cam_scale;
+                    aruco_world_x_ = static_cast<float>(dpos.x())
+                                     + ldx_a * std::cos(yaw) - ldy_a * std::sin(yaw);
+                    aruco_world_y_ = static_cast<float>(dpos.y())
+                                     + ldx_a * std::sin(yaw) + ldy_a * std::cos(yaw);
+                    aruco_world_valid_ = true;
+                    RCLCPP_INFO(this->get_logger(),
+                        "[ARUCO_POS] Locked ArUco world pos @ (%.2f, %.2f)",
+                        aruco_world_x_, aruco_world_y_);
+                }
+            }
+
+            float* excl_ptr = fsm_->blackboard_get<float>("aruco_exclusion_radius");
+            float aruco_excl_r = excl_ptr ? *excl_ptr : 0.5f;
+
+            auto store_base_pos = [&](const std::string& label, float ex, float ey, float det_conf) {
                 if (label.empty()) return;
-                // Reject bases whose centre is too close to the frame edge — partial
-                // detections (base cut off at the border) produce unreliable positions.
                 if (std::hypot(ex, ey) > max_err_radius) return;
+
                 float ldx = -ey * alt * cam_scale;
                 float ldy =  ex * alt * cam_scale;
                 float wx  = static_cast<float>(dpos.x())
@@ -261,33 +299,134 @@ private:
                 float wy  = static_cast<float>(dpos.y())
                             + ldx * std::sin(yaw) + ldy * std::cos(yaw);
                 float r   = std::max(0.5f, std::hypot(ex, ey) * alt * cam_scale + 0.5f);
-                std::string rk = "known_base_" + label + "_r";
-                float* prev_r = fsm_->blackboard_get<float>(rk);
-                bool is_new = (prev_r == nullptr);
-                if (!prev_r || r < *prev_r) {
-                    fsm_->blackboard_set<float>("known_base_" + label + "_x", wx);
-                    fsm_->blackboard_set<float>("known_base_" + label + "_y", wy);
-                    fsm_->blackboard_set<float>(rk, r);
+
+                // Ignore detections projected near the launch pad origin (false positives
+                // during takeoff when the downward camera sees the launch base).
+                if (std::hypot(wx, wy) < 0.30f) {
+                    RCLCPP_DEBUG(this->get_logger(),
+                        "[IGNORE_LAUNCHPAD] %s @ (%.2f, %.2f) — too close to origin",
+                        label.c_str(), wx, wy);
+                    return;
                 }
-                if (is_new) {
+
+                // Ignore detections that fall on top of the ArUco marker — the vision
+                // node can confuse the marker pattern for a numbered base.
+                if (aruco_world_valid_) {
+                    float d = std::hypot(wx - aruco_world_x_, wy - aruco_world_y_);
+                    if (d < aruco_excl_r) {
+                        RCLCPP_DEBUG(this->get_logger(),
+                            "[IGNORE_ARUCO] %s @ (%.2f, %.2f) — %.2f m from ArUco (excl=%.2f)",
+                            label.c_str(), wx, wy, d, aruco_excl_r);
+                        return;
+                    }
+                }
+
+                // Blended confidence: detection quality × positional reliability
+                float pos_q = 1.0f - std::min(1.0f, std::hypot(ex, ey));
+                float conf  = det_conf * pos_q;
+
+                // ── Spatial deduplication ───────────────────────────────────
+                // Find all known bases within dedup_r of this new detection.
+                std::string closest_label;
+                float closest_dist = dedup_r + 1.0f;
+                std::string weakest_nearby_label;
+                float weakest_conf = 1.1f;
+                int nearby_count = 0;
+
+                for (const auto& lbl : known_base_labels_) {
+                    float* kx = fsm_->blackboard_get<float>("known_base_" + lbl + "_x");
+                    float* ky = fsm_->blackboard_get<float>("known_base_" + lbl + "_y");
+                    if (!kx || !ky) continue;
+                    float dist = std::hypot(wx - *kx, wy - *ky);
+                    if (dist < dedup_r) {
+                        nearby_count++;
+                        if (dist < closest_dist) {
+                            closest_dist = dist;
+                            closest_label = lbl;
+                        }
+                        float* kc = fsm_->blackboard_get<float>("known_base_" + lbl + "_conf");
+                        float known_c = kc ? *kc : 0.0f;
+                        if (known_c < weakest_conf) {
+                            weakest_conf = known_c;
+                            weakest_nearby_label = lbl;
+                        }
+                    }
+                }
+
+                // Helper: store or update an entry under a specific label key
+                auto write_entry = [&](const std::string& key_label) {
+                    fsm_->blackboard_set<float>("known_base_" + key_label + "_x", wx);
+                    fsm_->blackboard_set<float>("known_base_" + key_label + "_y", wy);
+                    fsm_->blackboard_set<float>("known_base_" + key_label + "_r", r);
+                    fsm_->blackboard_set<float>("known_base_" + key_label + "_conf", conf);
+                    known_base_labels_.insert(key_label);
+                };
+
+                if (nearby_count == 0) {
+                    // Case A: genuinely new base
+                    write_entry(label);
                     std::string discovery = "[DISCOVERY] " + label +
                         " @ (" + std::to_string(wx) + ", " + std::to_string(wy) +
-                        ") r=" + std::to_string(r);
+                        ") r=" + std::to_string(r) + " conf=" + std::to_string(conf);
                     RCLCPP_INFO(this->get_logger(), "%s", discovery.c_str());
                     std_msgs::msg::String pub_msg;
                     pub_msg.data = discovery;
                     discovered_bases_pub_->publish(pub_msg);
+
+                } else if (nearby_count == 1) {
+                    // Case B: same physical base seen again
+                    float* kc = fsm_->blackboard_get<float>("known_base_" + closest_label + "_conf");
+                    float known_c = kc ? *kc : 0.0f;
+
+                    if (label == closest_label) {
+                        // Same label: update position/confidence if more confident
+                        if (conf > known_c) {
+                            write_entry(label);
+                            RCLCPP_INFO(this->get_logger(),
+                                "[UPDATE] %s conf %.2f→%.2f", label.c_str(), known_c, conf);
+                        }
+                    } else {
+                        // Different label at same location: prefer higher confidence label.
+                        // Add the new label as a separate entry; don't contaminate old one.
+                        if (conf > known_c) {
+                            write_entry(label);
+                            RCLCPP_INFO(this->get_logger(),
+                                "[NEW_CONF] %s (conf %.2f) near %s (conf %.2f) — added as new",
+                                label.c_str(), conf, closest_label.c_str(), known_c);
+                        }
+                    }
+
+                } else {
+                    // Case C: multiple nearby — only act if same label with lower confidence
+                    if (conf > weakest_conf && label == weakest_nearby_label) {
+                        write_entry(label);
+                        RCLCPP_INFO(this->get_logger(),
+                            "[UPDATE_MULTI] %s conf %.2f→%.2f",
+                            label.c_str(), weakest_conf, conf);
+                    } else if (conf > weakest_conf && label != weakest_nearby_label) {
+                        // New label is more confident than weakest — add it separately
+                        write_entry(label);
+                        RCLCPP_INFO(this->get_logger(),
+                            "[NEW_CONF_MULTI] %s (conf %.2f) added near cluster",
+                            label.c_str(), conf);
+                    }
                 }
             };
 
-            for (size_t i = 0; i < msg->visible_bases.size(); ++i)
+            size_t n = msg->visible_bases.size();
+            for (size_t i = 0; i < n; ++i) {
+                float det_conf = (i < msg->visible_bases_confidence.size())
+                    ? msg->visible_bases_confidence[i] : 0.3f;
                 store_base_pos(msg->visible_bases[i],
                                msg->visible_bases_x_error[i],
-                               msg->visible_bases_y_error[i]);
+                               msg->visible_bases_y_error[i],
+                               det_conf);
+            }
             if (msg->target_base_in_sight)
                 store_base_pos(msg->target_base,
                                msg->target_base_x_error,
-                               msg->target_base_y_error);
+                               msg->target_base_y_error,
+                               0.7f);  // target is always confident (exact match)
         }
     }
 
@@ -306,6 +445,62 @@ private:
         trajectory_.header.stamp = ps.header.stamp;
         trajectory_.poses.push_back(ps);
         path_pub_->publish(trajectory_);
+
+        // ── Base markers for RViz2 — republish every 2s (empty array if no bases yet) ──
+        if (pos_log_counter_ % 40 == 0) {
+            visualization_msgs::msg::MarkerArray ma;
+            std::string* target_label = fsm_->blackboard_get<std::string>("target_base");
+            int mid = 0;
+            for (const auto& lbl : known_base_labels_) {
+                float* kx = fsm_->blackboard_get<float>("known_base_" + lbl + "_x");
+                float* ky = fsm_->blackboard_get<float>("known_base_" + lbl + "_y");
+                float* kc = fsm_->blackboard_get<float>("known_base_" + lbl + "_conf");
+                if (!kx || !ky) continue;
+                bool is_target = target_label && (*target_label == lbl);
+
+                // Pick colour by shape prefix
+                float cr = 0.5f, cg = 0.5f, cb = 1.0f;  // default blue
+                if (lbl.find("TRIANGULO") != std::string::npos) { cr=1.0f; cg=0.2f; cb=0.2f; }
+                else if (lbl.find("ESTRELA")   != std::string::npos) { cr=1.0f; cg=0.9f; cb=0.0f; }
+                if (is_target) { cr=0.0f; cg=1.0f; cb=0.3f; }  // target = green
+
+                // Sphere at world XY, z slightly above ground (NED→ENU: swap x/y, flip z)
+                visualization_msgs::msg::Marker sphere;
+                sphere.header.frame_id = "map";
+                sphere.header.stamp    = this->now();
+                sphere.ns = "base_spheres";
+                sphere.id = mid++;
+                sphere.type   = visualization_msgs::msg::Marker::SPHERE;
+                sphere.action = visualization_msgs::msg::Marker::ADD;
+                sphere.pose.position.x = *ky;   // ENU East  = NED y
+                sphere.pose.position.y = *kx;   // ENU North = NED x
+                sphere.pose.position.z = 0.05f;
+                sphere.pose.orientation.w = 1.0;
+                sphere.scale.x = sphere.scale.y = sphere.scale.z = is_target ? 0.4f : 0.25f;
+                sphere.color.r = cr; sphere.color.g = cg; sphere.color.b = cb;
+                sphere.color.a = kc ? (0.4f + *kc * 0.6f) : 0.7f;
+                sphere.lifetime = rclcpp::Duration(0, 0);
+                ma.markers.push_back(sphere);
+
+                // Text label above the sphere
+                visualization_msgs::msg::Marker txt;
+                txt.header = sphere.header;
+                txt.ns = "base_labels";
+                txt.id = mid++;
+                txt.type   = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
+                txt.action = visualization_msgs::msg::Marker::ADD;
+                txt.pose.position.x = sphere.pose.position.x;
+                txt.pose.position.y = sphere.pose.position.y;
+                txt.pose.position.z = 0.40f;
+                txt.pose.orientation.w = 1.0;
+                txt.scale.z = 0.20f;
+                txt.color.r = 1.0f; txt.color.g = 1.0f; txt.color.b = 1.0f; txt.color.a = 1.0f;
+                txt.text = lbl + (kc ? (" c=" + std::to_string(*kc).substr(0,4)) : "");
+                txt.lifetime = rclcpp::Duration(0, 0);
+                ma.markers.push_back(txt);
+            }
+            base_markers_pub_->publish(ma);
+        }
 
         // State + position log every 2 s (40 ticks at 20 Hz)
         if (pos_log_counter_++ % 40 == 0) {
@@ -350,14 +545,20 @@ private:
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Subscription<custom_msgs::msg::BouncingDetection>::SharedPtr cv_sub_;
 
-    bool prev_aruco_detected_       = false;
-    bool prev_target_base_in_sight_ = false;
-    bool prev_target_calculated_    = false;
+    bool  prev_aruco_detected_       = false;
+    bool  prev_target_base_in_sight_ = false;
+    bool  prev_target_calculated_    = false;
+    float aruco_world_x_             = 0.0f;
+    float aruco_world_y_             = 0.0f;
+    bool  aruco_world_valid_         = false;
     int  pos_log_counter_           = 0;
 
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr discovered_bases_pub_;
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr base_markers_pub_;
     nav_msgs::msg::Path trajectory_;
+    std::set<std::string> known_base_labels_;
+    int marker_seq_ = 0;
 };
 
 

@@ -23,6 +23,7 @@ find_package(custom_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 
 # Include directories
 include_directories(include)
@@ -42,6 +43,7 @@ ament_target_dependencies(mission_1
   nav_msgs
   geometry_msgs
   std_msgs
+  visualization_msgs
 )
 
 install(TARGETS mission_1

@@ -23,12 +23,18 @@ mission_1_node:
     aruco_align_frames: 5.0
     aruco_kp_x: 1.5
     aruco_kp_y: 1.5
+    aruco_kd_x: 0.05
+    aruco_kd_y: 0.05
     base_spiral_step: 1.0
-    base_tolerance: 0.10
-    base_kp_x: 0.5
-    base_kp_y: 0.5
+    base_tolerance: 0.12
+    base_kp_x: 0.7
+    base_kp_y: 0.7
+    base_kd_x: 0.07
+    base_kd_y: 0.07
     shape_id_altitude: -1.0
     shape_id_velocity: 0.3
     base_persistence_frames: 3.0
     base_cam_scale: 0.7
     base_max_err_radius: 0.7
+    base_dedup_radius: 1.5
+    aruco_exclusion_radius: 0.5

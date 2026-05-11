@@ -11,7 +11,9 @@
 class GoToArucoState : public fsm::State {
 public:
     GoToArucoState() : fsm::State(),
-        entry_z_(0.0f), align_frames_when_known_(5), align_frames_when_unknown_(10) {}
+        entry_z_(0.0f), kd_x_(0.0f), kd_y_(0.0f),
+        err_x_prev_(0.0f), err_y_prev_(0.0f),
+        align_frames_when_known_(5), align_frames_when_unknown_(10) {}
 
     void on_enter(fsm::Blackboard &blackboard) override {
         drone_ = *blackboard.get<std::shared_ptr<Drone>>("drone");
@@ -34,6 +36,11 @@ public:
         align_frames_when_unknown_ = align_frames_when_known_ * 2;
 
         entry_z_ = static_cast<float>(drone_->getLocalPosition().z());
+
+        kd_x_ = blackboard.contains("aruco_kd_x") ? *blackboard.get<float>("aruco_kd_x") : 0.0f;
+        kd_y_ = blackboard.contains("aruco_kd_y") ? *blackboard.get<float>("aruco_kd_y") : 0.0f;
+        err_x_prev_ = 0.0f;
+        err_y_prev_ = 0.0f;
 
         aligned_counter_ = 0;
         miss_counter_ = 0;
@@ -71,16 +78,22 @@ public:
         float err_x = *blackboard.get<float>("aruco_x_error");
         float err_y = *blackboard.get<float>("aruco_y_error");
 
-        // P controller: camera frame → drone FRD frame
-        // top-of-image = drone forward (+X); err_y<0 means ArUco above center = forward
-        float vx = -err_y * kp_x_;
-        float vy =  err_x * kp_y_;
+        // PD controller: camera frame → drone FRD frame
+        // D term damps oscillation when approaching center (like SAE 2025 approach)
+        float d_err_x = (err_x - err_x_prev_) / 0.05f;
+        float d_err_y = (err_y - err_y_prev_) / 0.05f;
+        err_x_prev_ = err_x;
+        err_y_prev_ = err_y;
+
+        float vx = -(err_y * kp_x_ + d_err_y * kd_x_);  // FRD forward
+        float vy =  (err_x * kp_y_ + d_err_x * kd_y_);   // FRD right
 
         float max_v = 1.0f;
         vx = std::clamp(vx, -max_v, max_v);
         vy = std::clamp(vy, -max_v, max_v);
 
-        move_local_by_vel_as_position(drone_, vx, vy, 0.0f);
+        // Use velocity setpoints (more responsive than position steps — mirrors 2025 align)
+        move_local_by_speed(drone_, vx, vy, 0.0f);
 
         bool target_calculated = blackboard.contains("target_calculated") &&
                                  *blackboard.get<bool>("target_calculated");
@@ -127,7 +140,9 @@ private:
     std::shared_ptr<Drone> drone_;
     float tolerance_;
     float kp_x_, kp_y_;
+    float kd_x_, kd_y_;
     float entry_z_;
+    float err_x_prev_, err_y_prev_;
     int aligned_counter_;
     int miss_counter_;
     int tick_;
