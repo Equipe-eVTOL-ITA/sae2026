@@ -5,7 +5,7 @@
 mission_1_node:
   ros__parameters:
     # FSM parameters
-    takeoff_height: -2.0
+    takeoff_height: -1.5
     position_tolerance: 0.2
     max_vertical_velocity: 1.0
     max_horizontal_velocity: 1.5
@@ -15,7 +15,7 @@ mission_1_node:
     landing_velocity_min: 0.1
 
     # Mission 1 Parameters
-    z_max_search: -2.5
+    z_max_search: -1.5
     aruco_spiral_step: 2.5
     aruco_spiral_arc_step: 0.5
     search_aruco_velocity: 0.5
