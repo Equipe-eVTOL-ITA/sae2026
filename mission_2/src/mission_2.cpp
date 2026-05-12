@@ -24,6 +24,7 @@
 
 // Mission-specific states 
 #include "mission_2/states/search_ball_state.hpp"
+#include "mission_2/states/lookat_ball_state.hpp"
 #include "mission_2/states/goto_ball_state.hpp"
 #include "mission_2/states/rise_state.hpp"
 #include "mission_2/states/approach_hose_state.hpp"
@@ -52,6 +53,7 @@ public:
         this->add_state("ARMING",         std::make_unique<ArmingState>());
         this->add_state("TAKEOFF",        std::make_unique<TakeoffState>());
         this->add_state("SEARCH_BALL",    std::make_unique<SearchBallState>());
+        this->add_state("LOOKAT_BALL",    std::make_unique<LookAtBallState>());
         this->add_state("GOTO_BALL",      std::make_unique<GoToBallState>());
         this->add_state("RISE",           std::make_unique<RiseState>());
         this->add_state("APPROACH_HOSE",  std::make_unique<ApproachHoseState>());
@@ -73,7 +75,13 @@ public:
         });
 
         this->add_transitions("SEARCH_BALL", {
-            {"BALL_FOUND", "GOTO_BALL"},
+            {"BALL_FOUND", "LOOKAT_BALL"},
+            {"ERROR", "ERROR"}
+        });
+
+        this->add_transitions("LOOKAT_BALL", {
+            {"BALL_ALIGNED", "GOTO_BALL"},
+            {"BALL_LOST", "SEARCH_BALL"},
             {"ERROR", "ERROR"}
         });
 
@@ -84,6 +92,7 @@ public:
         });
 
         this->add_transitions("RISE", {
+            {"HOSE_DETECTED", "ALIGN"},
             {"RISE_COMPLETED", "APPROACH_HOSE"},
             {"ERROR", "ERROR"}
         });
@@ -141,8 +150,8 @@ public:
             // Mission 2 Parameters
             {"search_speed",           0.5},
             {"search_radius",          3.0},
-            {"ball_trigger_score",     5000.0},
-            {"ball_approach_velocity", 0.2},
+            {"ball_trigger_score",     18000.0},
+            {"ball_approach_velocity", 0.12},
             {"ball_distance_scale",    100.0},
             {"ball_min_area",          100.0},
             {"ball_max_area",        30000.0},
@@ -152,9 +161,18 @@ public:
             {"ball_centering_kp",        0.8},
             {"ball_centering_frames",    5.0},
             {"ball_centering_miss_tol",  5.0},
+            {"ball_lookat_x_tolerance",  0.12},
+            {"ball_lookat_y_tolerance",  0.10},
+            {"ball_lookat_frames",       5.0},
+            {"ball_lookat_yaw_kp",       0.45},
+            {"ball_lookat_alt_kp",       0.25},
+            {"ball_lookat_max_yaw_step",  0.12},
+            {"ball_lookat_max_vertical_step", 0.08},
             {"ball_kp_x", 0.5}, {"ball_ki_x", 0.0}, {"ball_kd_x", 0.1},
             {"ball_kp_y", 0.5}, {"ball_ki_y", 0.0}, {"ball_kd_y", 0.1},
             {"rise_target_z", -4.5},
+            {"rise_climb_rate", 0.3},
+            {"rise_hose_confirm_frames", 3.0},
             {"align_tolerance_y",      0.1},
             {"align_tolerance_yaw",    0.05},
             {"align_kp_y", 0.5}, {"align_ki_y", 0.0}, {"align_kd_y", 0.1},

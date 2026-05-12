@@ -49,13 +49,6 @@ public:
         if (max_lost_detection_count_ < 1) {
             max_lost_detection_count_ = 1;
         }
-        // Altitude-first phase: start not aligned
-        altitude_aligned_phase_ = false;
-        alt_tolerance_ = 0.05f;
-        if (blackboard.contains("ball_alt_tolerance")) {
-            alt_tolerance_ = *blackboard.get<float>("ball_alt_tolerance");
-            if (alt_tolerance_ < 0.0f) alt_tolerance_ = 0.0f;
-        }
     }
 
     std::string act(fsm::Blackboard &blackboard) override {
@@ -101,52 +94,35 @@ public:
             return "REACHED";
         }
 
-        // Altitude-first behavior:
-        // 1) Align altitude (image y) until within tolerance
-        // 2) Then align horizontally (image x) while approaching forward
-
-        // Compute lateral and vertical corrections from PIDs
+        // Slow approach with continuous centering correction.
         // Invert lateral sign so positive image x_error (ball to right)
         // produces positive local y (right) movement.
         float vy_lateral = -pid_x_.compute(x_error);
         float vz_vertical = pid_y_.compute(-y_error); // FRD sign correction
 
-        if (!altitude_aligned_phase_) {
-            // Only apply vertical corrections while keeping horizontal movement zero
-            Eigen::Vector3d local_delta(0.0f, 0.0f, vz_vertical);
-            Eigen::Vector3d world_delta = adjust_velocity_using_yaw(local_delta, drone_->getOrientation().z());
-            Eigen::Vector3d target_pos = drone_->getLocalPosition() + world_delta;
-
-            float speed = std::fabs(vz_vertical);
-            if (speed < 0.05f) speed = 0.05f;
-            move_local_by_waypoint(drone_, target_pos, speed);
-
-            if (std::fabs(y_error) <= alt_tolerance_) {
-                altitude_aligned_phase_ = true;
-                pid_x_.reset();
-                pid_y_.reset();
-            }
-
-            return "";
-        }
-
-        // Horizontal alignment phase: forward + lateral corrections. Keep vertical stable.
-        float vx_forward = 0.5f;
+        float vx_forward = 0.12f;
         if (blackboard.contains("ball_approach_velocity")) {
             vx_forward = *blackboard.get<float>("ball_approach_velocity");
         }
 
-        // Zero vertical correction now that altitude is aligned
-        vz_vertical = 0.0f;
+        float yaw_adjust = x_error * 0.15f;
+        if (yaw_adjust > 0.12f) yaw_adjust = 0.12f;
+        if (yaw_adjust < -0.12f) yaw_adjust = -0.12f;
 
         Eigen::Vector3d local_delta(vx_forward, vy_lateral, vz_vertical);
         Eigen::Vector3d world_delta = adjust_velocity_using_yaw(local_delta, drone_->getOrientation().z());
         Eigen::Vector3d target_pos = drone_->getLocalPosition() + world_delta;
 
-        float speed = std::sqrt(vx_forward*vx_forward + vy_lateral*vy_lateral);
+        float speed = std::sqrt(vx_forward*vx_forward + vy_lateral*vy_lateral + vz_vertical*vz_vertical);
         if (speed < 0.1f) speed = 0.1f;
 
-        move_local_by_waypoint(drone_, target_pos, speed);
+        move_local_by_waypoint(
+            drone_,
+            target_pos,
+            speed,
+            0.1f,
+            static_cast<float>(drone_->getOrientation()[2]) + yaw_adjust
+        );
 
         return "";
     }
@@ -158,6 +134,4 @@ private:
     PidController pid_y_;
     int lost_detection_count_;
     int max_lost_detection_count_;
-    bool altitude_aligned_phase_;
-    float alt_tolerance_;
 };
