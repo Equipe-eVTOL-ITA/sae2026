@@ -16,7 +16,7 @@ mission_1_node:
 
     # Mission 1 Parameters
     z_max_search: -1.5
-    aruco_spiral_step: 2.5
+    aruco_spiral_step: 1.0
     aruco_spiral_arc_step: 0.5
     search_aruco_velocity: 0.5
     aruco_persistence_frames: 3.0
