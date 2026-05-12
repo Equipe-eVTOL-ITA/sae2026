@@ -133,7 +133,8 @@ public:
             // ALIGN
             {"position_tolerance_align",     0.10},
             {"max_horizontal_velocity_align", 0.3},
-            {"align_kp",                     0.5},
+            {"align_kp",                     0.7},
+            {"align_kd",                     0.05},
             {"align_min_detections",         10.0},
 
             // APPROACH

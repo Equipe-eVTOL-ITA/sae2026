@@ -22,6 +22,10 @@ def generate_launch_description():
     pkg_mission_3 = get_package_share_directory('mission_3')
     simulation_params = os.path.join(pkg_mission_3, "config", "simulation.yaml")
 
+    pkg_audio_alert = get_package_share_directory('audio_alert')
+    audio_above_path = os.path.join(pkg_audio_alert, 'audio', 'above.mp3')
+    audio_below_path = os.path.join(pkg_audio_alert, 'audio', 'below.mp3')
+
     # Declare the mission executable argument
     exec_arg = DeclareLaunchArgument(
         "mission",
@@ -50,7 +54,6 @@ def generate_launch_description():
         output='screen'
     )
 
-
     vision_node = Node(
         package='manometro_detector',
         executable='manometro_detector',
@@ -60,21 +63,27 @@ def generate_launch_description():
 
     delayed_fsm_node = TimerAction(period=5.0, actions=[fsm_node])
 
-
-
-
-
-
-
-
-
-
-
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
         arguments=['-d', RVIZ_CONFIG],
         condition=IfCondition(LaunchConfiguration("rviz")),
+        output='screen'
+    )
+
+    """
+    source /opt/ros/humble/setup.bash
+    ros2 run audio_alert audio_alert \
+        --ros-args -p audio_above_limit:=/path/above.mp3 \
+                -p audio_below_limit:=/path/below.mp3
+    """
+    audio_node = Node(
+        package='audio_alert',
+        executable='audio_alert',
+        parameters=[{
+            'audio_above_limit': audio_above_path,
+            'audio_below_limit': audio_below_path,
+        }],
         output='screen'
     )
 
@@ -85,4 +94,5 @@ def generate_launch_description():
         vision_node,
         delayed_fsm_node,
         rviz_node,
+        audio_node
     ])

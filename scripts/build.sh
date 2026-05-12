@@ -13,7 +13,7 @@ if [ $# -ne 1 ]; then
     echo "  deps                — build only dependencies (px4_msgs, fsm, custom_msgs, etc.)"
     echo "  stdstates           — build only stdstates"
     echo "  drone_lib           — build only drone_lib"
-    echo "  mangueira_detector  — build only mangueira_detector (hose detector)"
+    echo "  audio_alert         — build only audio_alert"
     echo "  mission_1           — build only mission_1"
     echo "  mission_2           — build only mission_2"
     echo "  mission_3           — build only mission_3"
@@ -82,6 +82,13 @@ case $1 in
             --symlink-install \
             --cmake-args "-DCMAKE_BUILD_TYPE=$BUILD_TYPE" "-DCMAKE_EXPORT_COMPILE_COMMANDS=On" \
             --packages-select mission_3 \
+            --executor sequential
+        ;;
+    
+    audio_alert)
+        colcon build \
+            --packages-select audio_alert \
+            --symlink-install \
             --executor sequential
         ;;
     *)

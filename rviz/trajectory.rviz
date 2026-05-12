@@ -7,10 +7,12 @@ Panels:
         - /Grid1
         - /Trajectory1
       Splitter Ratio: 0.5
-    Tree Height: 500
+    Tree Height: 219
   - Class: rviz_common/Views
+    Expanded:
+      - /Current View1
     Name: Views
-
+    Splitter Ratio: 0.5
 Visualization Manager:
   Class: ""
   Displays:
@@ -20,7 +22,7 @@ Visualization Manager:
       Color: 160; 160; 164
       Enabled: true
       Line Style:
-        Line Width: 0.03
+        Line Width: 0.029999999329447746
         Value: Lines
       Name: Grid
       Normal Cell Count: 0
@@ -32,16 +34,16 @@ Visualization Manager:
       Plane Cell Count: 20
       Reference Frame: <Fixed Frame>
       Value: true
-
     - Alpha: 1
+      Buffer Length: 1
       Class: rviz_default_plugins/Path
       Color: 0; 255; 0
       Enabled: true
-      Head Diameter: 0.3
-      Head Length: 0.2
-      Length: 0.3
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
       Line Style: Lines
-      Line Width: 0.05
+      Line Width: 0.05000000074505806
       Name: Trajectory
       Offset:
         X: 0
@@ -49,10 +51,9 @@ Visualization Manager:
         Z: 0
       Pose Color: 255; 85; 255
       Pose Style: None
-      Queue Size: 10
-      Radius: 0.03
-      Shaft Diameter: 0.1
-      Shaft Length: 0.1
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -61,7 +62,19 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /drone_trajectory
       Value: true
-
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: MarkerArray
+      Namespaces:
+        base_labels: true
+        base_spheres: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /mission_1/base_markers
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 40; 40; 40
@@ -70,33 +83,48 @@ Visualization Manager:
   Name: root
   Tools:
     - Class: rviz_default_plugins/Interact
-      Hide Inactive: false
+      Hide Inactive Objects: true
     - Class: rviz_default_plugins/MoveCamera
     - Class: rviz_default_plugins/Select
     - Class: rviz_default_plugins/FocusCamera
     - Class: rviz_default_plugins/Measure
       Line color: 128; 128; 0
+  Transformation:
+    Current:
+      Class: rviz_default_plugins/TF
   Value: true
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 20
+      Distance: 13.71664810180664
       Enable Stereo Rendering:
-        Stereo Eye Separation: 0.06
+        Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: -1.3614782094955444
+        Y: 0.004374182783067226
+        Z: -0.7367064356803894
       Focal Shape Fixed Size: true
-      Focal Shape Size: 0.05
+      Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
-      Near Clip Distance: 0.01
-      Pitch: 0.9
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.5150005221366882
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.785
+      Yaw: 0.3799993395805359
     Saved: ~
+Window Geometry:
+  Displays:
+    collapsed: true
+  Height: 720
+  Hide Left Dock: true
+  Hide Right Dock: false
+  QMainWindow State: 000000ff00000000fd0000000100000000000001cb00000276fc0200000002fb000000100044006900730070006c006100790073000000003d00000166000000c900fffffffb0000000a0056006900650077007300000001a90000010a000000a400ffffff000002bc0000027600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Views:
+    collapsed: true
+  Width: 700
+  X: 741
+  Y: 109

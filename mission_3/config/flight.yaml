@@ -23,6 +23,7 @@ fase_3_node:
     position_tolerance_align: 0.10
     max_horizontal_velocity_align: 0.3
     align_kp: 0.5
+    align_kd: 0.07
     align_min_detections: 6.0
 
     # APPROACH

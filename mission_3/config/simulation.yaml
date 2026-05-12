@@ -20,9 +20,10 @@ fase_3_node:
     position_tolerance_mov: 0.1
 
     # ALIGN
-    position_tolerance_align: 0.10
-    max_horizontal_velocity_align: 0.3
+    position_tolerance_align: 0.12
+    max_horizontal_velocity_align: 0.25
     align_kp: 0.5
+    align_kd: 0.09
     align_min_detections: 6.0
 
     # APPROACH
