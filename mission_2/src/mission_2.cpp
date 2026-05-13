@@ -28,6 +28,7 @@
 #include "mission_2/states/goto_ball_state.hpp"
 #include "mission_2/states/rise_state.hpp"
 #include "mission_2/states/approach_hose_state.hpp"
+#include "mission_2/states/mangueira_align_state.hpp"
 #include "mission_2/states/drop_the_hook_state.hpp"
 
 class Mission2FSM : public fsm::FSM {
@@ -57,7 +58,7 @@ public:
         this->add_state("GOTO_BALL",      std::make_unique<GoToBallState>());
         this->add_state("RISE",           std::make_unique<RiseState>());
         this->add_state("APPROACH_HOSE",  std::make_unique<ApproachHoseState>());
-        this->add_state("ALIGN",          std::make_unique<AlignState>(true, true));
+        this->add_state("MANGUEIRA_ALIGN", std::make_unique<MangueiraAlignState>(true, true));
         this->add_state("DROP_HOOK",      std::make_unique<DropTheHookState>());
         this->add_state("GOTO_BASE",      std::make_unique<GoToState>());
         this->add_state("LANDING",        std::make_unique<LandingState>());
@@ -92,17 +93,18 @@ public:
         });
 
         this->add_transitions("RISE", {
-            {"HOSE_DETECTED", "ALIGN"},
+            {"HOSE_DETECTED", "MANGUEIRA_ALIGN"},
             {"RISE_COMPLETED", "APPROACH_HOSE"},
             {"ERROR", "ERROR"}
         });
 
         this->add_transitions("APPROACH_HOSE", {
-            {"HOSE_FOUND", "ALIGN"},
+            {"HOSE_FOUND", "MANGUEIRA_ALIGN"},
             {"ERROR", "ERROR"}
         });
 
-        this->add_transitions("ALIGN", {
+        this->add_transitions("MANGUEIRA_ALIGN", {
+            {"HOSE_LOST", "RISE"},
             {"ALIGNED", "DROP_HOOK"},
             {"ERROR", "ERROR"}
         });
@@ -255,9 +257,11 @@ public:
             std::chrono::milliseconds(500),
             [this]() {
                 fsm_->blackboard_set<bool>("hose_in_sight", false);
-                // Reset stale offsets so AlignState doesn't chase a ghost position.
-                // AlignState will see offset=0 (within tolerance) and proceed.
+                // Reset stale offsets so the hose alignment state doesn't chase a ghost position.
+                fsm_->blackboard_set<float>("hose_offset_x",    0.0f);
                 fsm_->blackboard_set<float>("hose_offset_y",    0.0f);
+                fsm_->blackboard_set<float>("hose_center_x",    0.0f);
+                fsm_->blackboard_set<float>("hose_center_y",    0.0f);
                 fsm_->blackboard_set<float>("hose_angle_error", 0.0f);
             }
         );
@@ -267,9 +271,12 @@ public:
         hose_pos_sub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(
             "/mangueira/position", 10,
             [this](const geometry_msgs::msg::PointStamped::SharedPtr msg) {
-                // Expect normalized coordinates [0,1]; convert to offset centered at 0.0
-                float offset_y = static_cast<float>(msg->point.y) - 0.5f;
-                fsm_->blackboard_set<float>("hose_offset_y", offset_y);
+                // Store raw normalized coordinates [0,1]. The alignment state will
+                // handle the sign convention and convert them into steering errors.
+                fsm_->blackboard_set<float>("hose_offset_x", static_cast<float>(msg->point.x));
+                fsm_->blackboard_set<float>("hose_offset_y", static_cast<float>(msg->point.y));
+                fsm_->blackboard_set<float>("hose_center_x", static_cast<float>(msg->point.x));
+                fsm_->blackboard_set<float>("hose_center_y", static_cast<float>(msg->point.y));
                 // Mark hose as in sight; timer resets to 500ms before going False
                 fsm_->blackboard_set<bool>("hose_in_sight", true);
                 hose_timeout_->reset();
