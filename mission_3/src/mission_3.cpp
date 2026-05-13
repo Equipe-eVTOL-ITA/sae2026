@@ -23,6 +23,7 @@
 #include "mission_3/approach_state.hpp"
 #include "mission_3/goto_state.hpp"
 #include "mission_3/photo_state.hpp"
+#include "mission_3/search_state.hpp"
 
 
 
@@ -50,6 +51,8 @@ public:
         // ... outras variáveis do blackboard ...
         this->blackboard_set<float>("error_x", NAN);
         this->blackboard_set<float>("error_y", NAN);
+        this->blackboard_set<int>("limite_ticks_",20);
+        this->blackboard_set<int>("limit_miss_align",100);
         
 
         // states
@@ -59,6 +62,7 @@ public:
         this->add_state("TAKEOFF",  std::make_unique<TakeoffState>());
         this->add_state("GOTO",     std::make_unique<GoToState>());
         this->add_state("ALIGN",    std::make_unique<AlignState>());
+        this->add_state("SEARCH",   std::make_unique<SearchState>());
         this->add_state("APPROACH", std::make_unique<ApproachState>());
         this->add_state("PHOTO",    std::make_unique<PhotoState>());
         this->add_state("LANDING",  std::make_unique<LandingState>());
@@ -83,7 +87,13 @@ public:
 
         this->add_transitions("ALIGN", {
             {"ALIGNED", "APPROACH"},
+            {"LOST TARGET", "SEARCH"},
             {"ERROR",   "ERROR"}
+        });
+
+        this->add_transitions("SEARCH", {
+            {"FOUND IT", "ALIGN"},
+            {"ERROR", "ERROR"}
         });
 
         this->add_transitions("APPROACH", {
@@ -93,7 +103,6 @@ public:
 
         this->add_transitions("PHOTO", {
             {"PHOTO TAKEN", "GOTO"},
-            //{"NOT ALIGNED", "ALIGN"},
             {"ERROR","ERROR"}
         });
 
@@ -136,6 +145,11 @@ public:
             {"align_kp",                     0.7},
             {"align_kd",                     0.05},
             {"align_min_detections",         10.0},
+
+            // SEARCH
+            {"max_horizontal_velocity_search", 0.3},
+            {"position_tolerance_search",      0.1},
+            {"step",                           0.7},
 
             // APPROACH
             {"manometer_approach_altitude",  -1.0},

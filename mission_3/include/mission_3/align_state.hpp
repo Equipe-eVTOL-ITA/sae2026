@@ -53,6 +53,7 @@ public:
 
         entry_z_     = static_cast<float>(drone_->getLocalPosition().z());
         initial_yaw_ = drone_->getOrientation()[2];
+        limit_miss_align_= *blackboard.get<int>("limit_miss_align");
 
         err_x_prev_      = 0.0f;
         err_y_prev_      = 0.0f;
@@ -76,11 +77,17 @@ public:
         bool detected = !std::isnan(err_x) && !std::isnan(err_y);
 
         if (!detected) {
+            miss_counter_++;
+            if (miss_counter_ >= limit_miss_align_) {
+                drone_->log("ALIGN: Alvo perdido por muito tempo. Retornando para SEARCH.");
+                return "LOST TARGET"; // Ou o nome da transição que leva ao estado SEARCH
+            }
+
             // Hold position — reset derivative to avoid spike on re-detection
             err_x_prev_ = 0.0f;
             err_y_prev_ = 0.0f;
             drone_->setLocalPosition(pos.x(), pos.y(), entry_z_, initial_yaw_);
-            if (++miss_counter_ >= 3)
+            if (miss_counter_ >= 3)
                 aligned_counter_ = 0;
             if (tick_++ % 20 == 0)
                 drone_->log("ALIGN: no detection — holding (aligned="
@@ -139,4 +146,5 @@ private:
     float err_x_prev_, err_y_prev_;
     int   min_detections_;
     int   aligned_counter_, miss_counter_, tick_;
+    int   limit_miss_align_;
 };

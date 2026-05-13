@@ -26,6 +26,11 @@ fase_3_node:
     align_kd: 0.09
     align_min_detections: 6.0
 
+    # SEARCH
+    max_horizontal_velocity_search: 0.3
+    position_tolerance_search: 0.1
+    step: 0.7
+
     # APPROACH
     manometer_approach_altitude: -2.0
     approach_velocity: 0.3
