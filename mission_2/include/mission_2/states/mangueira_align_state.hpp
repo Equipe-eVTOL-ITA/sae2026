@@ -10,16 +10,12 @@
 #include "fsm/fsm.hpp"
 #include "drone/Drone.hpp"
 #include "drone/PidController.hpp"
-#include "drone/movement.hpp"
-#include "drone/transformations.hpp"
 
 class MangueiraAlignState : public fsm::State {
 public:
+    // Backward-compatible constructor kept for mission_2.cpp call sites.
     MangueiraAlignState(bool align_center, bool align_yaw)
-        : MangueiraAlignState() {
-        align_center_ = align_center;
-        align_yaw_ = align_yaw;
-    }
+        : MangueiraAlignState() { align_center_ = align_center; align_yaw_ = align_yaw; }
 
     MangueiraAlignState()
         : fsm::State(),
@@ -27,20 +23,20 @@ public:
           align_yaw_(true),
           alignment_timeout_(30.0f),
           lost_timeout_(6),
-          stable_required_frames_(5),
-          align_tolerance_x_(0.10f),
-          align_tolerance_y_(0.10f),
+          min_detections_(5),
+          tolerance_(0.10f),
           yaw_tolerance_(0.05f),
-          pid_x_(0.0f, 0.0f, 0.0f, 0.5f),
-          pid_y_(0.0f, 0.0f, 0.0f, 0.5f),
-          pid_yaw_(0.0f, 0.0f, 0.0f, 0.0f),
-          target_yaw_(0.0f),
-          stable_count_(0),
-          lost_detection_count_(0) {}
+          kp_(0.7f), kd_(0.05f), max_vel_(0.3f),
+          kp_yaw_(0.5f), kd_yaw_(0.1f),
+          max_yaw_rate_(0.5f),
+          entry_z_(0.0f), initial_yaw_(0.0f),
+          err_x_prev_(0.0f), err_y_prev_(0.0f),
+          pid_yaw_(0.5f, 0.0f, 0.1f, 0.0f, 0.05f),
+          aligned_counter_(0), miss_counter_(0), tick_(0) {}
 
     void on_enter(fsm::Blackboard &blackboard) override {
         drone_ = *blackboard.get<std::shared_ptr<Drone>>("drone");
-        if (drone_ == nullptr) return;
+        if (!drone_) return;
 
         drone_->log("");
         drone_->log("STATE: MANGUEIRA_ALIGN");
@@ -50,49 +46,51 @@ public:
         lost_timeout_ = blackboard.contains("lost_timeout")
             ? static_cast<int>(*blackboard.get<float>("lost_timeout")) : 6;
 
-        align_tolerance_x_ = blackboard.contains("align_tolerance_x")
-            ? *blackboard.get<float>("align_tolerance_x")
-            : (blackboard.contains("align_tolerance_y") ? *blackboard.get<float>("align_tolerance_y") : 0.10f);
-        align_tolerance_y_ = blackboard.contains("align_tolerance_y")
-            ? *blackboard.get<float>("align_tolerance_y")
-            : align_tolerance_x_;
+        tolerance_ = blackboard.contains("position_tolerance_align")
+            ? *blackboard.get<float>("position_tolerance_align") : 0.10f;
         yaw_tolerance_ = blackboard.contains("align_tolerance_yaw")
             ? *blackboard.get<float>("align_tolerance_yaw") : 0.05f;
+        kp_ = blackboard.contains("align_kp")
+            ? *blackboard.get<float>("align_kp") : 0.7f;
+        kd_ = blackboard.contains("align_kd")
+            ? *blackboard.get<float>("align_kd") : 0.05f;
+        max_vel_ = blackboard.contains("max_horizontal_velocity_align")
+            ? *blackboard.get<float>("max_horizontal_velocity_align") : 0.3f;
+        min_detections_ = blackboard.contains("align_min_detections")
+            ? static_cast<int>(*blackboard.get<float>("align_min_detections")) : 10;
+        max_yaw_rate_ = blackboard.contains("align_max_yaw_rate")
+            ? *blackboard.get<float>("align_max_yaw_rate") : 0.5f;
 
-        stable_required_frames_ = blackboard.contains("align_stable_frames")
-            ? static_cast<int>(*blackboard.get<float>("align_stable_frames")) : 5;
+        kp_yaw_ = blackboard.contains("align_kp_yaw")
+            ? *blackboard.get<float>("align_kp_yaw") : 0.5f;
+        const float ki_yaw = blackboard.contains("align_ki_yaw")
+            ? *blackboard.get<float>("align_ki_yaw") : 0.0f;
+        kd_yaw_ = blackboard.contains("align_kd_yaw")
+            ? *blackboard.get<float>("align_kd_yaw") : 0.1f;
 
-        const float kp_x = blackboard.contains("align_kp_x") ? *blackboard.get<float>("align_kp_x") : 0.5f;
-        const float ki_x = blackboard.contains("align_ki_x") ? *blackboard.get<float>("align_ki_x") : 0.0f;
-        const float kd_x = blackboard.contains("align_kd_x") ? *blackboard.get<float>("align_kd_x") : 0.1f;
+        entry_z_ = static_cast<float>(drone_->getLocalPosition().z());
+        initial_yaw_ = drone_->getOrientation()[2];
 
-        const float kp_y = blackboard.contains("align_kp_y") ? *blackboard.get<float>("align_kp_y") : 0.5f;
-        const float ki_y = blackboard.contains("align_ki_y") ? *blackboard.get<float>("align_ki_y") : 0.0f;
-        const float kd_y = blackboard.contains("align_kd_y") ? *blackboard.get<float>("align_kd_y") : 0.1f;
+        err_x_prev_ = 0.0f;
+        err_y_prev_ = 0.0f;
+        aligned_counter_ = 0;
+        miss_counter_ = 0;
+        tick_ = 0;
 
-        const float kp_yaw = blackboard.contains("align_kp_yaw") ? *blackboard.get<float>("align_kp_yaw") : 0.5f;
-        const float ki_yaw = blackboard.contains("align_ki_yaw") ? *blackboard.get<float>("align_ki_yaw") : 0.0f;
-        const float kd_yaw = blackboard.contains("align_kd_yaw") ? *blackboard.get<float>("align_kd_yaw") : 0.1f;
-
-        pid_x_ = PidController(kp_x, ki_x, kd_x, 0.5f);
-        pid_y_ = PidController(kp_y, ki_y, kd_y, 0.5f);
-        pid_yaw_ = PidController(kp_yaw, ki_yaw, kd_yaw, 0.0f);
-
-        pid_x_.reset();
-        pid_y_.reset();
+        pid_yaw_ = PidController(kp_yaw_, ki_yaw, kd_yaw_, 0.0f, 0.05f);
         pid_yaw_.reset();
 
-        target_yaw_ = static_cast<float>(drone_->getOrientation()[2]);
         start_time_ = std::chrono::steady_clock::now();
-        stable_start_time_ = start_time_;
-        stable_count_ = 0;
-        lost_detection_count_ = 0;
 
-        drone_->log("Starting mangueira alignment with PID control");
+        drone_->log("kp=" + std::to_string(kp_) + " kd=" + std::to_string(kd_) +
+                    " tol=" + std::to_string(tolerance_) +
+                    " yaw_tol=" + std::to_string(yaw_tolerance_) +
+                    " max_yawspeed=" + std::to_string(max_yaw_rate_) +
+                    " need=" + std::to_string(min_detections_) + " frames");
     }
 
     std::string act(fsm::Blackboard &blackboard) override {
-        if (drone_ == nullptr) return "ERROR";
+        if (!drone_) return "ERROR";
 
         auto current_time = std::chrono::steady_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time_);
@@ -102,90 +100,86 @@ public:
         }
 
         auto pos = drone_->getLocalPosition();
-        float current_yaw = static_cast<float>(drone_->getOrientation()[2]);
 
-        bool in_sight = blackboard.contains("hose_in_sight") &&
-                        *blackboard.get<bool>("hose_in_sight");
+        // Hold if centers missing or hose not in sight (timeout in mission_2 zeros centers but keeps keys).
+        const bool have_centers = blackboard.contains("hose_center_x") && blackboard.contains("hose_center_y");
+        bool hose_in_sight = true;
+        if (blackboard.contains("hose_in_sight"))
+            hose_in_sight = *blackboard.get<bool>("hose_in_sight");
 
-        if (!in_sight) {
-            lost_detection_count_++;
-            if (lost_detection_count_ > lost_timeout_) {
-                drone_->log("Lost mangueira detections for too long");
-                return "HOSE_LOST";
+        if (!have_centers || !hose_in_sight) {
+            err_x_prev_ = 0.0f;
+            err_y_prev_ = 0.0f;
+            pid_yaw_.reset();
+            drone_->setLocalPosition(pos.x(), pos.y(), entry_z_, initial_yaw_);
+            if (++miss_counter_ >= 3) aligned_counter_ = 0;
+            if (tick_++ % 20 == 0) {
+                drone_->log("MANGUEIRA_ALIGN: no valid detection — holding (aligned=" +
+                            std::to_string(aligned_counter_) + " in_sight=" +
+                            std::string(hose_in_sight ? "1" : "0") + ")");
             }
-
-            drone_->setLocalPosition(pos.x(), pos.y(), pos.z(), current_yaw);
             return "";
         }
 
-        lost_detection_count_ = 0;
+        // Read center values
+        float center_x = *blackboard.get<float>("hose_center_x");
+        float center_y = *blackboard.get<float>("hose_center_y");
 
-        float center_x = 0.5f;
-        float center_y = 0.5f;
+        float hose_angle = blackboard.contains("hose_angle_error")
+            ? *blackboard.get<float>("hose_angle_error") : 0.0f;
 
-        if (blackboard.contains("hose_center_x")) {
-            center_x = *blackboard.get<float>("hose_center_x");
-        } else if (blackboard.contains("hose_offset_x")) {
-            center_x = *blackboard.get<float>("hose_offset_x");
+        // Normalize to [-1, 1] as AlignState expects
+        float err_x = (center_x - 0.5f) * 2.0f;
+        float err_y = (center_y - 0.5f) * 2.0f;
+
+        // First tick after a miss: seed prev to current to suppress derivative spike
+        if (miss_counter_ > 0) {
+            err_x_prev_ = err_x;
+            err_y_prev_ = err_y;
+        }
+        miss_counter_ = 0;
+
+        // PD controller — normalized camera error → NED velocity setpoint
+        float d_err_x = (err_x - err_x_prev_) / 0.05f;
+        float d_err_y = (err_y - err_y_prev_) / 0.05f;
+        err_x_prev_ = err_x;
+        err_y_prev_ = err_y;
+
+        float vx = align_center_ ? -(err_y * kp_ + d_err_y * kd_) : 0.0f;
+        float vy = align_center_ ?  (err_x * kp_ + d_err_x * kd_) : 0.0f;
+        if (vx > max_vel_) vx = max_vel_;
+        if (vx < -max_vel_) vx = -max_vel_;
+        if (vy > max_vel_) vy = max_vel_;
+        if (vy < -max_vel_) vy = -max_vel_;
+
+        float yaw_error = 0.0f;
+        // Fourth argument to setLocalVelocity is yawspeed (rad/s), not heading (see Drone::setLocalVelocity).
+        float yawspeed_cmd = 0.0f;
+        if (align_yaw_) {
+            yawspeed_cmd = pid_yaw_.compute(hose_angle);
+            yawspeed_cmd = std::clamp(yawspeed_cmd, -max_yaw_rate_, max_yaw_rate_);
+            yaw_error = std::abs(hose_angle);
         }
 
-        if (blackboard.contains("hose_center_y")) {
-            center_y = *blackboard.get<float>("hose_center_y");
-        } else if (blackboard.contains("hose_offset_y")) {
-            center_y = *blackboard.get<float>("hose_offset_y");
-        }
+        drone_->setLocalVelocity(vx, vy, 0.0f, yawspeed_cmd);
 
-        float hose_angle = 0.0f;
-        if (blackboard.contains("hose_angle_error")) {
-            hose_angle = *blackboard.get<float>("hose_angle_error");
-        }
-
-        float pid_output_x = align_center_ ? pid_x_.compute(center_x) : 0.0f;
-        float pid_output_y = align_center_ ? pid_y_.compute(center_y) : 0.0f;
-        float pid_output_yaw = align_yaw_ ? pid_yaw_.compute(hose_angle) : 0.0f;
-
-        // INVERTED XY MOVEMENT HERE:
-        // The mangueira detector / current FSM convention needs the planar command
-        // flipped so the drone moves toward the hose instead of away from it.
-        Eigen::Vector3d local_delta(-pid_output_x, -pid_output_y, 0.0);
-        Eigen::Vector3d world_delta = adjust_velocity_using_yaw(local_delta, current_yaw);
-        Eigen::Vector3d target_pos = drone_->getLocalPosition() + world_delta;
-
-        target_yaw_ += pid_output_yaw * 0.1f;
-        if (target_yaw_ > M_PI) target_yaw_ -= 2.0f * M_PI;
-        if (target_yaw_ < -M_PI) target_yaw_ += 2.0f * M_PI;
-
-        float pos_err_x = std::abs(center_x - 0.5f);
-        float pos_err_y = std::abs(center_y - 0.5f);
-        float angle_err = std::abs(hose_angle);
-
-        if (pos_err_x < align_tolerance_x_ && pos_err_y < align_tolerance_y_ && angle_err < yaw_tolerance_) {
-            if (stable_count_ == 0) {
-                stable_start_time_ = current_time;
-            }
-            stable_count_++;
-
-            auto stable_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-                current_time - stable_start_time_);
-
-            if (stable_count_ >= stable_required_frames_ || stable_elapsed.count() > 500) {
-                drone_->log("Mangueira alignment achieved");
-                return "ALIGNED";
-            }
+        float err_mag = std::sqrt(err_x * err_x + err_y * err_y);
+        if (err_mag < tolerance_ && (!align_yaw_ || yaw_error < yaw_tolerance_)) {
+            ++aligned_counter_;
         } else {
-            stable_count_ = 0;
-            stable_start_time_ = current_time;
+            aligned_counter_ = 0;
         }
 
-        float speed = std::max(std::abs(pid_output_x), std::abs(pid_output_y));
-        if (speed < 0.1f) speed = 0.1f;
+        if (tick_++ % 10 == 0)
+            drone_->log("MANGUEIRA_ALIGN err=(" + std::to_string(err_x) + "," + std::to_string(err_y) + ") mag=" + std::to_string(err_mag)
+                        + " yaw_err=" + std::to_string(hose_angle)
+                        + " yawspeed=" + std::to_string(yawspeed_cmd)
+                        + " vx_vy=(" + std::to_string(vx) + "," + std::to_string(vy) + ")"
+                        + " aligned=" + std::to_string(aligned_counter_) + "/" + std::to_string(min_detections_));
 
-        move_local_by_waypoint(drone_, target_pos, speed, 0.1f, target_yaw_);
-
-        if (stable_count_ % 20 == 0) {
-            drone_->log("Aligning mangueira - Pos error x: " + std::to_string(pos_err_x) +
-                        ", y: " + std::to_string(pos_err_y) +
-                        ", angle error: " + std::to_string(angle_err));
+        if (aligned_counter_ >= min_detections_) {
+            drone_->log("MANGUEIRA_ALIGN: hose centered!");
+            return "ALIGNED";
         }
 
         return "";
@@ -193,29 +187,28 @@ public:
 
     void on_exit(fsm::Blackboard &blackboard) override {
         (void)blackboard;
-        if (drone_ != nullptr) {
-            drone_->log("Exiting mangueira alignment state");
-        }
+        if (drone_) drone_->log("Exiting mangueira alignment state");
     }
 
 private:
     std::shared_ptr<Drone> drone_;
+
     bool align_center_;
     bool align_yaw_;
     float alignment_timeout_;
     int lost_timeout_;
-    int stable_required_frames_;
-    float align_tolerance_x_;
-    float align_tolerance_y_;
+    int min_detections_;
+    float tolerance_;
     float yaw_tolerance_;
 
-    PidController pid_x_;
-    PidController pid_y_;
+    float kp_, kd_, max_vel_;
+    float kp_yaw_, kd_yaw_;
+    float max_yaw_rate_;
+
+    float entry_z_, initial_yaw_;
+    float err_x_prev_, err_y_prev_;
     PidController pid_yaw_;
-    float target_yaw_;
+    int   aligned_counter_, miss_counter_, tick_;
 
     std::chrono::steady_clock::time_point start_time_;
-    std::chrono::steady_clock::time_point stable_start_time_;
-    int stable_count_;
-    int lost_detection_count_;
 };
