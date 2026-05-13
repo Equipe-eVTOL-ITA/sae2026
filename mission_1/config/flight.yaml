@@ -39,3 +39,5 @@ mission_1_node:
     base_max_err_radius: 0.7
     base_dedup_radius: 1.5
     aruco_exclusion_radius: 0.5
+
+    debug_pub_interval: 0.2
