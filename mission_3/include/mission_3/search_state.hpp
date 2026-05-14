@@ -31,6 +31,7 @@ public:
 
         pos_ = drone_->getLocalPosition();
         initial_yaw_ = drone_->getOrientation()[2];
+        search_start_z_ = static_cast<float>(pos_.z());  // fixed altitude reference for holds
 
         search_waypoints_[0] = Eigen::Vector3d(pos_.x() + search_step_,pos_.y()+search_step_,pos_.z());
         search_waypoints_[1] = Eigen::Vector3d(pos_.x() - search_step_,pos_.y()+search_step_,pos_.z());
@@ -70,8 +71,11 @@ public:
             if(ticks_ >= limite_ticks_){
                 return "FOUND IT";
             }
-            pos_=drone_->getLocalPosition();
-            drone_->setLocalPosition(pos_.x(),pos_.y(),pos_.z(),initial_yaw_);
+            // Use search_start_z_ (captured at on_enter) as the altitude reference.
+            // Reading pos_.z() here and passing it back as setpoint cements any
+            // accumulated altitude drift — the drone never returns to the correct z.
+            pos_ = drone_->getLocalPosition();
+            drone_->setLocalPosition(pos_.x(), pos_.y(), search_start_z_, initial_yaw_);
             return "";
         }
         else{
@@ -112,6 +116,7 @@ private:
     std::shared_ptr<Drone> drone_;
     Eigen::Vector3d pos_, goal_;
     float initial_yaw_;
+    float search_start_z_;            // altitude captured at on_enter, used as hold reference
     float position_tolerance_search_;
     float max_horizontal_velocity_search_;
     float search_step_;

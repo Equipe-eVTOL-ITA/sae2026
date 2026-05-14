@@ -115,8 +115,12 @@ public:
         vx = std::clamp(vx, -max_vel_, max_vel_);
         vy = std::clamp(vy, -max_vel_, max_vel_);
 
-        // Direct velocity setpoint — PX4 holds altitude with vz=0
-        drone_->setLocalVelocity(vx, vy, 0.0, 0.0);
+        // PX4 in velocity mode with vz=0 does NOT hold altitude — it only commands
+        // zero rate, so IMU bias accumulates into altitude drift.
+        // Add a P correction on z to push the drone back to entry_z_ each tick.
+        float cur_z = static_cast<float>(drone_->getLocalPosition().z());
+        float vz = std::clamp((entry_z_ - cur_z) * 3.0f, -0.20f, 0.20f);
+        drone_->setLocalVelocity(vx, vy, vz, 0.0);
 
         float err_mag = std::sqrt(err_x * err_x + err_y * err_y);
         if (err_mag < tolerance_) {
