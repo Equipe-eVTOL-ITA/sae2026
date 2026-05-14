@@ -25,6 +25,7 @@ public:
         max_horizontal_velocity_search_ = *blackboard.get<float>("max_horizontal_velocity_search");
         position_tolerance_search_ = *blackboard.get<float>("position_tolerance_search");
         contador_ = 0;
+        contador_voltas_ = 0;
         limite_ticks_ = *blackboard.get<int>("limite_ticks_");
         ticks_=0;
 
@@ -55,8 +56,13 @@ public:
         float error_x = *blackboard.get<float>("error_x");
         float error_y = *blackboard.get<float>("error_y");
 
+        if(contador_voltas_>=2){
+            return "FAILED";
+        }
+
         if(contador_>=6){
             contador_ = 0;
+            contador_voltas_++;
         }
 
         if((!std::isnan(error_x)) && (!std::isnan(error_y))){
@@ -112,4 +118,5 @@ private:
     int contador_;
     int limite_ticks_;
     int ticks_;
+    int contador_voltas_;
 };

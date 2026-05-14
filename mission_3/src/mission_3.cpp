@@ -24,6 +24,7 @@
 #include "mission_3/goto_state.hpp"
 #include "mission_3/photo_state.hpp"
 #include "mission_3/search_state.hpp"
+#include "mission_3/termination_state.hpp"
 
 
 
@@ -66,6 +67,7 @@ public:
         this->add_state("APPROACH", std::make_unique<ApproachState>());
         this->add_state("PHOTO",    std::make_unique<PhotoState>());
         this->add_state("LANDING",  std::make_unique<LandingState>());
+        this->add_state("TERMINATION", std::make_unique<TerminationState>());
 
         // transitions
 
@@ -93,6 +95,7 @@ public:
 
         this->add_transitions("SEARCH", {
             {"FOUND IT", "ALIGN"},
+            {"FAILED","TERMINATION"},
             {"ERROR", "ERROR"}
         });
 
@@ -109,6 +112,11 @@ public:
         this->add_transitions("LANDING", {
             {"LANDED", "FINISHED"},
             {"ERROR", "ERROR"}
+        });
+
+        this->add_transitions("TERMINATION", {
+            {"ON LANDING POINT", "LANDING"},
+            {"ERROR","ERROR"}
         });
 
         this->set_initial_state("ARMING");
