@@ -30,6 +30,91 @@
 #include "mission_2/states/approach_hose_state.hpp"
 #include "mission_2/states/mangueira_align_state.hpp"
 #include "mission_2/states/drop_the_hook_state.hpp"
+#include "mission_2/states/goto_base_state.hpp"
+
+// ── Bayesian 2D spatial filter for ball detection ────────────────────────
+// Maintains a log-probability grid over image space [-1,1]x[-1,1].
+//
+// Key property (Bayesian multiplication):
+//   P(ball_pos | z1, z2, ...) ∝ Π P(zi | ball_pos)
+//
+// When false positives appear at different locations, their Gaussian
+// likelihoods are peaked at different cells → the product is near-zero
+// everywhere → ratio stays low → no confirmation.
+//
+// When the real ball is consistently at the same position, likelihoods
+// stack at those cells → high peak/mean ratio → confirmation.
+class BallBayesFilter {
+public:
+    static constexpr int   N       = 10;     // 10x10 grid, cell size = 0.2 norm. units
+    static constexpr float SIGMA   = 0.35f;  // obs. noise (norm. image units)
+    static constexpr float DECAY   = 0.88f;  // log-prior decay per miss (→ more uniform)
+    static constexpr float CONFIRM = 8.0f;   // peak/mean ratio threshold
+
+    BallBayesFilter() { reset(); }
+
+    void reset() {
+        for (int i = 0; i < N; i++)
+            for (int j = 0; j < N; j++)
+                g_[i][j] = 0.0f;
+    }
+
+    // Feed a detection at (x, y) ∈ [-1,1]
+    void observe(float x, float y) {
+        for (int i = 0; i < N; i++) {
+            float cx = cell_c(i);
+            for (int j = 0; j < N; j++) {
+                float d2 = (x - cx)*(x - cx) + (y - cell_c(j))*(y - cell_c(j));
+                g_[i][j] += -0.5f * d2 / (SIGMA * SIGMA);
+            }
+        }
+        clamp();  // subtract max so overflow never occurs
+    }
+
+    // Call each miss tick; decays toward uniform
+    void miss() {
+        for (int i = 0; i < N; i++)
+            for (int j = 0; j < N; j++)
+                g_[i][j] *= DECAY;
+    }
+
+    struct Result { bool detected; float x, y, ratio; };
+
+    Result query() const {
+        float sum = 0.0f, sx = 0.0f, sy = 0.0f;
+        for (int i = 0; i < N; i++) {
+            float cx = cell_c(i);
+            for (int j = 0; j < N; j++) {
+                float p = std::exp(g_[i][j]);  // g_ ≤ 0 → p ≤ 1
+                sum += p;
+                sx  += p * cx;
+                sy  += p * cell_c(j);
+            }
+        }
+        // After clamp(), max(g_) = 0, so peak_p = exp(0) = 1.
+        // ratio = peak / mean = N*N / sum_exp.
+        float ratio = (sum > 1e-9f) ? (float(N * N) / sum) : 1.0f;
+        return {ratio >= CONFIRM,
+                sum > 0 ? sx / sum : 0.0f,
+                sum > 0 ? sy / sum : 0.0f,
+                ratio};
+    }
+
+private:
+    static float cell_c(int i) { return -1.0f + (2.0f * i + 1.0f) / N; }
+
+    void clamp() {
+        float mx = -1e10f;
+        for (int i = 0; i < N; i++)
+            for (int j = 0; j < N; j++)
+                mx = std::max(mx, g_[i][j]);
+        for (int i = 0; i < N; i++)
+            for (int j = 0; j < N; j++)
+                g_[i][j] = std::max(g_[i][j] - mx, -50.0f);
+    }
+
+    float g_[N][N];
+};
 
 class Mission2FSM : public fsm::FSM {
 public:
@@ -60,7 +145,7 @@ public:
         this->add_state("APPROACH_HOSE",  std::make_unique<ApproachHoseState>());
         this->add_state("MANGUEIRA_ALIGN", std::make_unique<MangueiraAlignState>(true, true));
         this->add_state("DROP_HOOK",      std::make_unique<DropTheHookState>());
-        this->add_state("GOTO_BASE",      std::make_unique<GoToState>());
+        this->add_state("GOTO_BASE",      std::make_unique<GoToBaseState>());
         this->add_state("LANDING",        std::make_unique<LandingState>());
 
         // ================== TRANSITIONS ===================
@@ -152,7 +237,7 @@ public:
             // Mission 2 Parameters
             {"search_speed",           0.5},
             {"search_radius",          3.0},
-            {"ball_trigger_score",     18000.0},
+            {"ball_trigger_score",     20000.0},
             {"ball_approach_velocity", 0.12},
             {"ball_distance_scale",    100.0},
             {"ball_min_area",          100.0},
@@ -172,18 +257,37 @@ public:
             {"ball_lookat_max_vertical_step", 0.08},
             {"ball_kp_x", 0.5}, {"ball_ki_x", 0.0}, {"ball_kd_x", 0.1},
             {"ball_kp_y", 0.5}, {"ball_ki_y", 0.0}, {"ball_kd_y", 0.1},
-            {"rise_target_z", -4.5},
-            {"rise_climb_rate", 0.3},
-            {"rise_hose_confirm_frames", 3.0},
-            {"align_tolerance_y",      0.1},
-            {"align_tolerance_yaw",    0.05},
+            {"rise_target_z",            -2.0},
+            {"rise_climb_rate",           0.3},
+            {"rise_timeout_s",           12.0},
+            {"rise_hose_confirm_frames",  3.0},
+            {"align_tolerance_y",          0.1},
+            {"align_tolerance_yaw",        0.15},
+            // XY PD gains used by MangueiraAlignState
+            {"align_kp",                   0.4},
+            {"align_kd",                   0.10},
+            {"max_horizontal_velocity_align", 0.20},
+            {"align_min_detections",       8.0},
+            // Phase 1: translate to hose centre (loose tolerance)
+            {"align_translate_tolerance",  0.25},
+            {"align_translate_frames",     5.0},
+            // Phase 2: yaw alignment
+            {"align_yaw_frames",           5.0},
+            // Phase 3: fine centring (tight tolerance)
+            {"align_fine_tolerance",       0.10},
+            {"align_fine_frames",          8.0},
+            // Yaw PID
             {"align_kp_y", 0.5}, {"align_ki_y", 0.0}, {"align_kd_y", 0.1},
-            {"align_kp_yaw", 0.5}, {"align_ki_yaw", 0.0}, {"align_kd_yaw", 0.1},
-            {"hose_approach_speed",    0.2},
+            {"align_kp_yaw", 0.15}, {"align_ki_yaw", 0.0}, {"align_kd_yaw", 0.05},
+            {"hose_approach_speed",          0.2},
             {"hook_script_path",       std::string("~/evtol/dev/scripts/drop_hook.py")},
-            {"target_x", 0.0},
-            {"target_y", 0.0},
-            {"target_z", -2.0}, // Flight altitude to return
+            // Return to base
+            {"ball_lost_frames",            15.0},
+            {"max_vel_goto",                 0.5},
+            {"hover_before_landing_ticks",  40.0},
+            {"target_x",   0.0},
+            {"target_y",   0.0},
+            {"target_z",  -1.5},
             {"target_yaw", 0.0},
         };
 
@@ -192,9 +296,10 @@ public:
         // objeto da FSM
         fsm_ = std::make_unique<Mission2FSM>(drone_, params);
 
-        // subscriber para as mensagens de detecção da bola
-        // Persistence filter: N frames confirmados para detectar, M frames para declarar perdida.
-        // Filtra também áreas pequenas (false positives de ruído).
+        // Ball detection via Bayesian 2D spatial filter.
+        // False positives at scattered locations cancel each other (product of
+        // Gaussians peaked at different spots → near-zero everywhere).
+        // Real ball at consistent location accumulates probability → confirms.
         ball_sub_ = this->create_subscription<custom_msgs::msg::BallDetection>(
             "ball_detection", 10,
             [this](const custom_msgs::msg::BallDetection::SharedPtr msg) {
@@ -204,46 +309,41 @@ public:
                 float* max_area_ptr = fsm_->blackboard_get<float>("ball_max_area");
                 float max_area = max_area_ptr ? *max_area_ptr : 30000.0f;
 
-                float* cf_ptr = fsm_->blackboard_get<float>("ball_confirm_frames");
-                int confirm_frames = cf_ptr ? static_cast<int>(*cf_ptr) : 3;
-
-                float* mf_ptr = fsm_->blackboard_get<float>("ball_miss_frames");
-                int miss_frames = mf_ptr ? static_cast<int>(*mf_ptr) : 10;
-
                 bool raw_ok = msg->is_detected
                     && (msg->target_score >= min_area)
                     && (msg->target_score <= max_area);
 
                 if (raw_ok) {
-                    ball_miss_counter_ = 0;
-                    ball_detect_counter_++;
-
-                    // Atualiza valores apenas quando confiáveis
-                    fsm_->blackboard_set<float>("ball_target_score", msg->target_score);
-                    fsm_->blackboard_set<float>("ball_x_error",      msg->x_error);
-                    fsm_->blackboard_set<float>("ball_y_error",      msg->y_error);
-
-                    if (ball_detect_counter_ >= confirm_frames) {
-                        fsm_->blackboard_set<bool>("ball_is_detected", true);
-                    }
+                    ball_bayes_.observe(msg->x_error, msg->y_error);
+                    ball_last_score_ = msg->target_score;
+                    ball_miss_count_ = 0;
                 } else {
-                    ball_detect_counter_ = 0;
-                    ball_miss_counter_++;
-                    if (ball_miss_counter_ >= miss_frames) {
-                        fsm_->blackboard_set<bool>("ball_is_detected", false);
+                    ball_bayes_.miss();
+                    if (++ball_miss_count_ >= 30) {
+                        ball_bayes_.reset();  // flush stale belief after ~1.5s of no detection
+                        ball_miss_count_ = 0;
                     }
                 }
 
-                // Log periódico (a cada 10 callbacks com detecção válida)
+                auto r = ball_bayes_.query();
+                fsm_->blackboard_set<bool>("ball_is_detected", r.detected);
+                if (r.detected) {
+                    fsm_->blackboard_set<float>("ball_x_error",      r.x);
+                    fsm_->blackboard_set<float>("ball_y_error",      r.y);
+                    fsm_->blackboard_set<float>("ball_target_score", ball_last_score_);
+                }
+
+                // Log periódico (a cada 10 callbacks com detecção bruta válida)
                 if (raw_ok) {
                     float* k_ptr = fsm_->blackboard_get<float>("ball_distance_scale");
                     float k_ball = k_ptr ? *k_ptr : 100.0f;
-                    float area   = msg->target_score;
-                    float est_dist = (area > 0.0f) ? (k_ball / std::sqrt(area)) : -1.0f;
+                    float est_dist = (ball_last_score_ > 0.0f)
+                        ? (k_ball / std::sqrt(ball_last_score_)) : -1.0f;
                     if (ball_log_counter_++ % 10 == 0) {
                         RCLCPP_INFO(this->get_logger(),
-                            "[BALL] err=(%.2f,%.2f) area=%.0f est_dist≈%.2fm confirmed=%d",
-                            msg->x_error, msg->y_error, area, est_dist, ball_detect_counter_);
+                            "[BALL] raw=(%.2f,%.2f) area=%.0f est≈%.2fm ratio=%.1f det=%s",
+                            msg->x_error, msg->y_error, ball_last_score_,
+                            est_dist, r.ratio, r.detected ? "YES" : "no");
                     }
                 } else {
                     ball_log_counter_ = 0;
@@ -263,6 +363,7 @@ public:
                 fsm_->blackboard_set<float>("hose_center_x",    0.0f);
                 fsm_->blackboard_set<float>("hose_center_y",    0.0f);
                 fsm_->blackboard_set<float>("hose_angle_error", 0.0f);
+                hose_ema_first_ = true;  // reset EMA so next detection seeds fresh
             }
         );
         fsm_->blackboard_set<bool>("hose_in_sight", false);
@@ -271,12 +372,24 @@ public:
         hose_pos_sub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(
             "/mangueira/position", 10,
             [this](const geometry_msgs::msg::PointStamped::SharedPtr msg) {
-                // Store raw normalized coordinates [0,1]. The alignment state will
-                // handle the sign convention and convert them into steering errors.
-                fsm_->blackboard_set<float>("hose_offset_x", static_cast<float>(msg->point.x));
-                fsm_->blackboard_set<float>("hose_offset_y", static_cast<float>(msg->point.y));
-                fsm_->blackboard_set<float>("hose_center_x", static_cast<float>(msg->point.x));
-                fsm_->blackboard_set<float>("hose_center_y", static_cast<float>(msg->point.y));
+                float raw_x = static_cast<float>(msg->point.x);
+                float raw_y = static_cast<float>(msg->point.y);
+
+                // EMA suaviza a posição da mangueira (alpha=0.55: rápido mas sem jitter)
+                if (hose_ema_first_) {
+                    hose_ema_x_ = raw_x;
+                    hose_ema_y_ = raw_y;
+                    hose_ema_first_ = false;
+                } else {
+                    hose_ema_x_ = kHoseEmaAlpha * raw_x + (1.0f - kHoseEmaAlpha) * hose_ema_x_;
+                    hose_ema_y_ = kHoseEmaAlpha * raw_y + (1.0f - kHoseEmaAlpha) * hose_ema_y_;
+                }
+
+                // offset_x/y mantém o raw para debug/display; center_x/y usa EMA para controle
+                fsm_->blackboard_set<float>("hose_offset_x", raw_x);
+                fsm_->blackboard_set<float>("hose_offset_y", raw_y);
+                fsm_->blackboard_set<float>("hose_center_x", hose_ema_x_);
+                fsm_->blackboard_set<float>("hose_center_y", hose_ema_y_);
                 // Mark hose as in sight; timer resets to 500ms before going False
                 fsm_->blackboard_set<bool>("hose_in_sight", true);
                 hose_timeout_->reset();
@@ -354,9 +467,16 @@ private:
     rclcpp::Subscription<custom_msgs::msg::BallDetection>::SharedPtr ball_sub_;
     rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr hose_pos_sub_;
     rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr hose_angle_sub_;
-    int ball_log_counter_    = 0;
-    int ball_detect_counter_ = 0;
-    int ball_miss_counter_   = 0;
+    int   ball_log_counter_ = 0;
+    int   ball_miss_count_  = 0;
+    float ball_last_score_  = 0.0f;
+    BallBayesFilter ball_bayes_;
+
+    // Hose position EMA
+    float hose_ema_x_   = 0.0f;
+    float hose_ema_y_   = 0.0f;
+    bool  hose_ema_first_ = true;
+    static constexpr float kHoseEmaAlpha = 0.55f;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
     nav_msgs::msg::Path trajectory_;
 };

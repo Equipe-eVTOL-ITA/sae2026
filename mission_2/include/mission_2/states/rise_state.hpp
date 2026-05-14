@@ -51,8 +51,12 @@ public:
             required_hose_frames_ = 3;
         }
 
-        drone_->log("Rising to z=" + std::to_string(target_z_) + 
-                    " with climb rate=" + std::to_string(climb_rate_) + " m/s");
+        rise_timeout_s_ = blackboard.contains("rise_timeout_s")
+            ? *blackboard.get<float>("rise_timeout_s") : 12.0f;
+
+        drone_->log("Rising to z=" + std::to_string(target_z_) +
+                    " with climb rate=" + std::to_string(climb_rate_) + " m/s" +
+                    " timeout=" + std::to_string(rise_timeout_s_) + "s");
     }
 
     std::string act(fsm::Blackboard &blackboard) override {
@@ -106,10 +110,16 @@ public:
                 target_z_,
                 static_cast<float>(drone_->getOrientation()[2])
             );
+            // Timeout: if hose never detected within rise_timeout_s_, proceed anyway
+            if (elapsed_time > rise_timeout_s_) {
+                drone_->log("RISE: timeout — no hose detected, proceeding to APPROACH_HOSE");
+                return "RISE_COMPLETED";
+            }
             // Log periodically (every 20 cycles)
             static int log_counter = 0;
             if (++log_counter % 20 == 0) {
-                drone_->log("Reached target altitude, waiting for hose detection");
+                drone_->log("Reached target altitude, waiting for hose detection ("
+                    + std::to_string(static_cast<int>(rise_timeout_s_ - elapsed_time)) + "s left)");
             }
             return "";  // Stay in RISE state
         }
@@ -133,7 +143,8 @@ private:
     float current_z_;            // Current target altitude during climb
     float start_z_;              // Starting altitude when entering state
     std::chrono::high_resolution_clock::time_point state_start_time_;
-    int hose_seen_frames_;
-    int required_hose_frames_;
+    int   hose_seen_frames_;
+    int   required_hose_frames_;
+    float rise_timeout_s_;
 };
 

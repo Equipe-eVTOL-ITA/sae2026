@@ -56,6 +56,7 @@ public:
             max_lost_detection_count_ = 1;
         }
 
+        entry_z_ = static_cast<float>(drone_->getLocalPosition().z());
         stable_counter_ = 0;
         lost_detection_count_ = 0;
     }
@@ -69,10 +70,11 @@ public:
         if (!is_detected) {
             ++lost_detection_count_;
             auto cur = drone_->getLocalPosition();
+            // Hold at entry_z_ (not cur.z()) to prevent altitude drift from being cemented.
             drone_->setLocalPosition(
                 static_cast<float>(cur.x()),
                 static_cast<float>(cur.y()),
-                static_cast<float>(cur.z()),
+                entry_z_,
                 static_cast<float>(drone_->getOrientation()[2])
             );
 
@@ -102,20 +104,27 @@ public:
         if (yaw_adjust > max_yaw_step_) yaw_adjust = max_yaw_step_;
         if (yaw_adjust < -max_yaw_step_) yaw_adjust = -max_yaw_step_;
 
-        float vertical_adjust = -y_error * altitude_kp_;
+        // Sign convention (horizontal camera, NED z negative = above ground):
+        //   y_error < 0 → ball above center → drone must ASCEND → z more negative → add negative value
+        //   y_error > 0 → ball below center → drone must DESCEND → z less negative → add positive value
+        // Therefore: vertical_adjust = +y_error (no negation).
+        // Previous code had -y_error which reversed the direction → drone descended into ground.
+        float vertical_adjust = y_error * altitude_kp_;
         if (vertical_adjust > max_vertical_step_) vertical_adjust = max_vertical_step_;
         if (vertical_adjust < -max_vertical_step_) vertical_adjust = -max_vertical_step_;
 
         auto cur = drone_->getLocalPosition();
-        Eigen::Vector3d target_pos(
+
+        // Direct setLocalPosition bypasses move_local_by_waypoint's tolerance check
+        // (0.1 m). Since vertical_adjust ≤ 0.08 m (max_vertical_step), the waypoint
+        // helper's pos_reached = true every tick → altitude is silently ignored.
+        float target_yaw = static_cast<float>(drone_->getOrientation()[2]) + yaw_adjust;
+        drone_->setLocalPosition(
             static_cast<float>(cur.x()),
             static_cast<float>(cur.y()),
-            static_cast<float>(cur.z()) + vertical_adjust
+            static_cast<float>(cur.z()) + vertical_adjust,
+            target_yaw
         );
-
-        float target_yaw = static_cast<float>(drone_->getOrientation()[2]) + yaw_adjust;
-        float speed = std::max(0.05f, std::fabs(vertical_adjust));
-        move_local_by_waypoint(drone_, target_pos, speed, 0.1f, target_yaw);
 
         bool centered = std::fabs(x_error) <= x_tolerance_ && std::fabs(y_error) <= y_tolerance_;
         if (centered) {
@@ -134,6 +143,7 @@ public:
 private:
     std::shared_ptr<Drone> drone_;
     float trigger_score_;
+    float entry_z_;
     int stable_counter_;
     int lost_detection_count_;
     int max_lost_detection_count_;

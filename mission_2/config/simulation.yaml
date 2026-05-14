@@ -21,12 +21,13 @@ mission_2_node:
     # Mission 2 Parameters
     search_speed: 0.5
     search_radius: 1.6
-    ball_trigger_score: 18000.0    # area maior => GOTO_BALL segue mais perto da bola
+    ball_trigger_score: 18000.0    # área maior => GOTO_BALL segue um pouco mais perto da bola
     ball_distance_scale: 100.0
     ball_min_area: 100.0
     ball_max_area: 30000.0
     ball_confirm_frames: 1.0       # bola passa 1 frame pelo FOV antes de sair — não aguardar 3
-    ball_miss_frames: 10.0
+    ball_miss_frames: 15.0
+    ball_lost_frames: 15.0          # ticks sem bola antes de BALL_LOST no GoToBall/LookAtBall
     ball_centering_threshold: 0.15
     ball_centering_kp: 0.8         # radianos de offset de yaw por unidade de x_error (sem fator dt)
     ball_centering_frames: 5.0
@@ -34,9 +35,9 @@ mission_2_node:
     ball_lookat_x_tolerance: 0.12
     ball_lookat_y_tolerance: 0.10
     ball_lookat_frames: 5.0
-    ball_lookat_yaw_kp: 0.45
+    ball_lookat_yaw_kp: 0.20           # reduzido: 0.45 causava 2.4 rad/s → oscilação de 28s
     ball_lookat_alt_kp: 0.25
-    ball_lookat_max_yaw_step: 0.12
+    ball_lookat_max_yaw_step: 0.07    # reduzido: ≈1.4 rad/s max (era 2.4 rad/s)
     ball_lookat_max_vertical_step: 0.08
     ball_approach_velocity: 0.5
     ball_kp_x: 0.5
@@ -45,19 +46,37 @@ mission_2_node:
     ball_kp_y: 0.5
     ball_ki_y: 0.0
     ball_kd_y: 0.1
-    rise_target_z: -3.0
+    rise_target_z: -2.0         # reduzido: a 2m mangueira ≈150px (era 100px a 3m)
     rise_climb_rate: 0.3
+    rise_timeout_s: 12.0        # timeout de segurança: nunca travar indefinidamente
     align_tolerance_y: 0.1
-    align_tolerance_yaw: 0.05
+    align_tolerance_yaw: 0.15
+    # XY PD gains
+    align_kp: 0.4
+    align_kd: 0.10
+    max_horizontal_velocity_align: 0.20
+    align_min_detections: 8.0
+    # Phase 1 — translate to hose centre of mass
+    align_translate_tolerance: 0.25
+    align_translate_frames: 5.0
+    # Phase 2 — yaw alignment
+    align_yaw_frames: 5.0
+    # Phase 3 — fine centering
+    align_fine_tolerance: 0.10
+    align_fine_frames: 8.0
+    # Yaw PID (slow: 180° ambiguity makes hose angle noisy)
     align_kp_y: 0.5
     align_ki_y: 0.0
     align_kd_y: 0.1
-    align_kp_yaw: 0.5
+    align_kp_yaw: 1.0             # ganho do yaw step (x0.05 clamp → ≈1 rad/s max)
     align_ki_yaw: 0.0
-    align_kd_yaw: 0.1
+    align_kd_yaw: 0.05
     hose_approach_speed: 0.2
     hook_script_path: "~/evtol/dev/scripts/drop_hook.py"
+    # Return-to-base parameters
+    max_vel_goto: 0.5                  # velocidade máxima de retorno (m/s)
+    hover_before_landing_ticks: 40.0   # pairar 2s (40 ticks a 20Hz) antes de pousar
     target_x: 0.0
     target_y: 0.0
-    target_z: -2.0
+    target_z: -1.5                     # altitude de retorno (menos negativo = mais baixo)
     target_yaw: 0.0

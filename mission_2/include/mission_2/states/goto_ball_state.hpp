@@ -44,7 +44,7 @@ public:
         lost_detection_count_ = 0;
         max_lost_detection_count_ = 5;
         if (blackboard.contains("ball_lost_frames")) {
-            max_lost_detection_count_ = *blackboard.get<int>("ball_lost_frames");
+            max_lost_detection_count_ = static_cast<int>(*blackboard.get<float>("ball_lost_frames"));
         }
         if (max_lost_detection_count_ < 1) {
             max_lost_detection_count_ = 1;

@@ -7,7 +7,7 @@ Panels:
         - /Grid1
         - /Trajectory1
       Splitter Ratio: 0.5
-    Tree Height: 219
+    Tree Height: 363
   - Class: rviz_common/Views
     Expanded:
       - /Current View1
@@ -66,8 +66,7 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        base_labels: true
-        base_spheres: true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -96,7 +95,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 13.71664810180664
+      Distance: 10.181629180908203
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -126,5 +125,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 700
-  X: 741
-  Y: 109
+  X: 292
+  Y: 51
