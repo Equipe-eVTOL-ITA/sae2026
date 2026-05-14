@@ -43,9 +43,31 @@ public:
         Eigen::Vector3d spiral_center;
 
         if (first_entry) {
-            // Mirror SearchArucoState: first search always starts from local origin.
-            spiral_center = Eigen::Vector3d(0.0, 0.0, center_z_);
-            drone_->log("First entry — spiral from home (0,0)");
+            // Even on first entry, use cached world position if available — the base
+            // may already have been seen during SEARCH_ARUCO and stored in the
+            // blackboard. Without this, the drone spirals from home (0,0) unnecessarily.
+            bool used_cache = false;
+            if (blackboard.contains("target_calculated") &&
+                *blackboard.get<bool>("target_calculated") &&
+                blackboard.contains("target_base")) {
+
+                std::string target = *blackboard.get<std::string>("target_base");
+                std::string key_x  = "known_base_" + target + "_x";
+
+                if (blackboard.contains(key_x)) {
+                    float cx = *blackboard.get<float>(key_x);
+                    float cy = *blackboard.get<float>("known_base_" + target + "_y");
+                    spiral_center = Eigen::Vector3d(cx, cy, center_z_);
+                    step_size_ = 0.5f;
+                    drone_->log("First entry — cached pos for " + target +
+                        " (" + std::to_string(cx) + "," + std::to_string(cy) + ")");
+                    used_cache = true;
+                }
+            }
+            if (!used_cache) {
+                spiral_center = Eigen::Vector3d(0.0, 0.0, center_z_);
+                drone_->log("First entry — spiral from home (0,0)");
+            }
         } else {
             // Re-entry after BASE_LOST: check if we have a cached world position.
             bool used_cache = false;

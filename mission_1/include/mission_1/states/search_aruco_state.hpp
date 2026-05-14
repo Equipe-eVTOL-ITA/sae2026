@@ -65,18 +65,39 @@ public:
             ? *blackboard.get<float>("z_max_search")
             : static_cast<float>(drone_->getLocalPosition().z());
 
-        // Square spiral starts at the local origin.
-        target_pos_ = Eigen::Vector3d(0.0, 0.0, center_z_);
-
-        current_leg_length_      = step_size_;
-        current_leg_             = 0;
-        steps_in_current_length_ = 0;
-
         // Cardinal directions: right, forward, left, back (NED: +X=N, +Y=E)
         directions_[0] = Eigen::Vector2d( 1.0,  0.0);
         directions_[1] = Eigen::Vector2d( 0.0,  1.0);
         directions_[2] = Eigen::Vector2d(-1.0,  0.0);
         directions_[3] = Eigen::Vector2d( 0.0, -1.0);
+
+        bool first_entry = !blackboard.contains("search_aruco_visited");
+        blackboard.set<bool>("search_aruco_visited", true);
+
+        if (first_entry) {
+            // Fresh start: spiral outward from local origin.
+            target_pos_ = Eigen::Vector3d(0.0, 0.0, center_z_);
+            current_leg_length_      = step_size_;
+            current_leg_             = 0;
+            steps_in_current_length_ = 0;
+            drone_->log("First entry — spiral from home (0,0)");
+        } else {
+            // Re-entry after ARUCO_LOST: restore spiral geometry from blackboard
+            // and resume from the current drone position (no backtracking to origin).
+            current_leg_length_ = blackboard.contains("search_aruco_leg_length")
+                ? *blackboard.get<float>("search_aruco_leg_length") : step_size_;
+            current_leg_ = blackboard.contains("search_aruco_leg")
+                ? *blackboard.get<int>("search_aruco_leg") : 0;
+            steps_in_current_length_ = blackboard.contains("search_aruco_leg_steps")
+                ? *blackboard.get<int>("search_aruco_leg_steps") : 0;
+
+            auto cur = drone_->getLocalPosition();
+            target_pos_ = Eigen::Vector3d(cur.x(), cur.y(), center_z_);
+            drone_->log("Re-entry SEARCH_ARUCO: resuming spiral from ("
+                + std::to_string(cur.x()) + "," + std::to_string(cur.y()) + ")"
+                + " leg=" + std::to_string(current_leg_)
+                + " len=" + std::to_string(current_leg_length_));
+        }
 
         update_target();
     }
@@ -136,6 +157,11 @@ public:
 
             update_target();
         }
+
+        // Persist spiral state so re-entries resume from here instead of origin.
+        blackboard.set<float>("search_aruco_leg_length", current_leg_length_);
+        blackboard.set<int>("search_aruco_leg",          current_leg_);
+        blackboard.set<int>("search_aruco_leg_steps",    steps_in_current_length_);
 
         move_local_by_waypoint(drone_, target_pos_, velocity_);
         return "";

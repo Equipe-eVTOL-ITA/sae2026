@@ -75,8 +75,8 @@ def generate_launch_description():
 
     # Vision node
     bouncing_cv_node = Node(
-        package='bouncing_detector',
-        executable='bouncing_detector_node',
+        package='RDPformas',#'bouncing_detector',
+        executable='RDPformas',#'bouncing_detector_node',
         output='screen'
     )
 

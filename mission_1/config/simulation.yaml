@@ -15,7 +15,7 @@ mission_1_node:
     landing_velocity_min: 0.1
 
     # Mission 1 Parameters
-    z_max_search: -1.5
+    z_max_search: -2.0
     aruco_spiral_step: 1.0
     search_aruco_velocity: 0.5
     aruco_persistence_frames: 3.0
@@ -38,3 +38,5 @@ mission_1_node:
     base_max_err_radius: 0.7
     base_dedup_radius: 1.5
     aruco_exclusion_radius: 0.5
+
+    debug_pub_interval: 0.2
