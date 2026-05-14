@@ -39,6 +39,10 @@ public:
 
         kd_x_ = blackboard.contains("aruco_kd_x") ? *blackboard.get<float>("aruco_kd_x") : 0.0f;
         kd_y_ = blackboard.contains("aruco_kd_y") ? *blackboard.get<float>("aruco_kd_y") : 0.0f;
+
+        cam_scale_ = blackboard.contains("base_cam_scale")
+            ? *blackboard.get<float>("base_cam_scale") : 0.7f;
+
         err_x_prev_ = 0.0f;
         err_y_prev_ = 0.0f;
 
@@ -61,15 +65,25 @@ public:
                 drone_->log("ArUco lost! Returning to search.");
                 return "ARUCO_LOST";
             }
-            // Hold position with fixed altitude — move_local_by_waypoint(speed=0) is
-            // a no-op for z correction, so we call setLocalPosition directly.
-            auto cur = drone_->getLocalPosition();
-            drone_->setLocalPosition(
-                static_cast<float>(cur.x()),
-                static_cast<float>(cur.y()),
-                entry_z_,
-                static_cast<float>(drone_->getOrientation()[2])
-            );
+
+            // Kinematic prediction: the ArUco is fixed on the ground, so its
+            // apparent position in the camera moves opposite to the drone's velocity.
+            //   d_err_x/dt = -vy_frd / (alt × cam_scale)   (lateral)
+            //   d_err_y/dt = -vx_frd / (alt × cam_scale)   (forward)
+            // Updating err_prev with the prediction has two benefits:
+            //   1. Drone keeps moving toward the predicted ArUco position.
+            //   2. On re-detection, d_err = (measured - predicted) ≈ 0 → no spike.
+            auto vel = drone_->getLocalVelocity();   // FRD frame
+            float alt = std::max(0.3f, -static_cast<float>(drone_->getLocalPosition().z()));
+            constexpr float dt = 0.05f;
+            err_x_prev_ = std::clamp(err_x_prev_ - static_cast<float>(vel.y()) / (alt * cam_scale_) * dt, -1.0f, 1.0f);
+            err_y_prev_ = std::clamp(err_y_prev_ - static_cast<float>(vel.x()) / (alt * cam_scale_) * dt, -1.0f, 1.0f);
+
+            // Continue toward predicted position at half speed (no derivative during miss)
+            float max_v = 1.0f;
+            float vx = std::clamp(-err_y_prev_ * kp_x_, -max_v * 0.5f, max_v * 0.5f);
+            float vy = std::clamp( err_x_prev_ * kp_y_, -max_v * 0.5f, max_v * 0.5f);
+            move_local_by_speed(drone_, vx, vy, 0.0f);
             return "";
         }
 
@@ -80,6 +94,8 @@ public:
 
         // PD controller: camera frame → drone FRD frame
         // D term damps oscillation when approaching center (like SAE 2025 approach)
+        // Note: err_x_prev_ contains the kinematic prediction if coming from a miss,
+        // so d_err ≈ (measured - predicted) rather than raw derivative → no spike.
         float d_err_x = (err_x - err_x_prev_) / 0.05f;
         float d_err_y = (err_y - err_y_prev_) / 0.05f;
         err_x_prev_ = err_x;
@@ -142,6 +158,7 @@ private:
     float kp_x_, kp_y_;
     float kd_x_, kd_y_;
     float entry_z_;
+    float cam_scale_;         // camera field-of-view scale for kinematic prediction
     float err_x_prev_, err_y_prev_;
     int aligned_counter_;
     int miss_counter_;

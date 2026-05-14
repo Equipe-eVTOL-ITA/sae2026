@@ -211,9 +211,27 @@ private:
         fsm_->blackboard_set<bool>("aruco_detected", msg->aruco_detected);
         if (msg->aruco_detected) {
             fsm_->blackboard_set<int>("aruco_id", msg->aruco_id);
-            fsm_->blackboard_set<float>("aruco_x_error", msg->aruco_x_error);
-            fsm_->blackboard_set<float>("aruco_y_error", msg->aruco_y_error);
             fsm_->blackboard_set<std::string>("aruco_shape", msg->aruco_shape);
+
+            // EMA filter on ArUco position: smooths single-frame noise and
+            // suppresses the derivative spike that occurs on flicker re-detection.
+            // alpha=1 → raw (no smoothing); alpha→0 → maximum smoothing + lag.
+            if (aruco_first_detection_) {
+                aruco_smoothed_x_ = msg->aruco_x_error;
+                aruco_smoothed_y_ = msg->aruco_y_error;
+                aruco_first_detection_ = false;
+            } else {
+                constexpr float kAlpha = 0.45f;
+                aruco_smoothed_x_ = kAlpha * msg->aruco_x_error
+                                  + (1.0f - kAlpha) * aruco_smoothed_x_;
+                aruco_smoothed_y_ = kAlpha * msg->aruco_y_error
+                                  + (1.0f - kAlpha) * aruco_smoothed_y_;
+            }
+            fsm_->blackboard_set<float>("aruco_x_error", aruco_smoothed_x_);
+            fsm_->blackboard_set<float>("aruco_y_error", aruco_smoothed_y_);
+        } else {
+            // Reset on loss so the filter seeds fresh on re-acquisition
+            aruco_first_detection_ = true;
         }
         if (msg->aruco_detected != prev_aruco_detected_) {
             if (msg->aruco_detected)
@@ -548,6 +566,9 @@ private:
     bool  prev_aruco_detected_       = false;
     bool  prev_target_base_in_sight_ = false;
     bool  prev_target_calculated_    = false;
+    float aruco_smoothed_x_          = 0.0f;
+    float aruco_smoothed_y_          = 0.0f;
+    bool  aruco_first_detection_     = true;
     float aruco_world_x_             = 0.0f;
     float aruco_world_y_             = 0.0f;
     bool  aruco_world_valid_         = false;
