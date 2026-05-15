@@ -1,0 +1,51 @@
+# Mission 1 — Simulation parameters
+# These are loaded by ROS2 launch files via:
+#   Node(parameters=[os.path.join(pkg_dir, "config", "simulation.yaml")])
+
+mission_1_H_node:
+  ros__parameters:
+    # FSM parameters
+    takeoff_height: -1.5
+    position_tolerance: 0.2
+    max_vertical_velocity: 1.0
+    max_horizontal_velocity: 1.5
+
+    # Landing parameters
+    landing_velocity_max: 0.5
+    landing_velocity_min: 0.1
+
+    # Mission 1 Parameters
+    z_max_search: -1.5
+    aruco_spiral_step: 1.0
+    aruco_spiral_arc_step: 0.5
+    search_aruco_velocity: 0.5
+    aruco_persistence_frames: 3.0
+    aruco_tolerance: 0.25
+    aruco_align_frames: 5.0
+    aruco_kp_x: 0.7
+    aruco_kp_y: 0.7
+    aruco_kd_x: 0.07
+    aruco_kd_y: 0.07
+    base_spiral_step: 1.0
+    base_tolerance: 0.12
+    base_kp_x: 0.7
+    base_kp_y: 0.7
+    base_kd_x: 0.07
+    base_kd_y: 0.07
+    shape_id_altitude: -1.0
+    shape_id_velocity: 0.3
+    base_persistence_frames: 3.0
+    base_cam_scale: 0.7
+    base_max_err_radius: 0.7
+    base_dedup_radius: 1.5
+    aruco_exclusion_radius: 0.5
+
+    debug_pub_interval: 0.2
+
+    # H search base parameters
+    lambda_1:  0.0
+    lambda_2:  1.2
+    lambda_3: -1.2
+    lambda_4:  0.0
+    distancia_percorrida_perpendicular: 2.5
+    h_search_dwell_ticks: 40.0
