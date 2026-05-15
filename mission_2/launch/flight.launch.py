@@ -48,14 +48,14 @@ def generate_launch_description():
         package='camera_publisher',
         executable='webcam',
         output='screen',
-        parameters=[{'camera_name': 'vertical', 'use_compressed': True}]
+        parameters=[{'camera_name': 'vertical', 'use_compressed': True, 'video_source': '/dev/video0'}]
     )
 
     horizontal_camera_node = Node(
         package='camera_publisher',
         executable='webcam',
         output='screen',
-        parameters=[{'camera_name': 'horizontal', 'use_compressed': True}]
+        parameters=[{'camera_name': 'horizontal', 'use_compressed': True, 'video_source': '/dev/video2'}]
     )
 
     system_health_node = Node(
