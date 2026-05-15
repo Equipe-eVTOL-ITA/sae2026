@@ -19,9 +19,9 @@ mission_2_node:
     max_horizontal_velocity: 1.5
 
     # Mission 2 Parameters
-    search_speed: 0.5
-    search_radius: 1.6
-    ball_trigger_score: 9500.0    # área maior => GOTO_BALL segue um pouco mais perto da bola
+    search_speed: 0.3
+    search_radius: 0.65
+    ball_trigger_score: 10000.0    # área maior => GOTO_BALL segue um pouco mais perto da bola
     ball_distance_scale: 100.0
     ball_min_area: 100.0
     ball_max_area: 30000.0
@@ -42,7 +42,7 @@ mission_2_node:
     ball_approach_velocity: 0.5
     ball_kp_x: 0.5
     ball_ki_x: 0.0
-    ball_kd_x: 0.1
+    ball_kd_x: 0.3
     ball_kp_y: 0.5
     ball_ki_y: 0.0
     ball_kd_y: 0.1
