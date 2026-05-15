@@ -56,10 +56,12 @@ public:
         this->add_state("SEARCH_BALL",    std::make_unique<SearchBallState>());
         this->add_state("LOOKAT_BALL",    std::make_unique<LookAtBallState>());
         this->add_state("GOTO_BALL",      std::make_unique<GoToBallState>());
-        this->add_state("RISE",           std::make_unique<RiseState>());
-        this->add_state("APPROACH_HOSE",  std::make_unique<ApproachHoseState>());
-        this->add_state("MANGUEIRA_ALIGN", std::make_unique<MangueiraAlignState>(true, true));
-        this->add_state("DROP_HOOK",      std::make_unique<DropTheHookState>());
+        this->add_state("RISE",                  std::make_unique<RiseState>());
+        this->add_state("APPROACH_HOSE",        std::make_unique<ApproachHoseState>());
+        this->add_state("MANGUEIRA_ALIGN_XY",   std::make_unique<MangueiraAlignXYState>());
+        this->add_state("MANGUEIRA_ALIGN_YAW",  std::make_unique<MangueiraAlignYawState>());
+        this->add_state("MANGUEIRA_ALIGN_FINAL", std::make_unique<MangueiraAlignFinalState>());
+        this->add_state("DROP_HOOK",            std::make_unique<DropTheHookState>());
         this->add_state("GOTO_BASE",      std::make_unique<GoToState>());
         this->add_state("LANDING",        std::make_unique<LandingState>());
 
@@ -93,19 +95,31 @@ public:
         });
 
         this->add_transitions("RISE", {
-            {"HOSE_DETECTED", "MANGUEIRA_ALIGN"},
+            {"HOSE_DETECTED", "MANGUEIRA_ALIGN_XY"},
             {"RISE_COMPLETED", "APPROACH_HOSE"},
             {"ERROR", "ERROR"}
         });
 
         this->add_transitions("APPROACH_HOSE", {
-            {"HOSE_FOUND", "MANGUEIRA_ALIGN"},
+            {"HOSE_FOUND", "MANGUEIRA_ALIGN_XY"},
             {"ERROR", "ERROR"}
         });
 
-        this->add_transitions("MANGUEIRA_ALIGN", {
+        this->add_transitions("MANGUEIRA_ALIGN_XY", {
+            {"XY_ALIGNED", "MANGUEIRA_ALIGN_YAW"},
             {"HOSE_LOST", "RISE"},
-            {"ALIGNED", "DROP_HOOK"},
+            {"ERROR", "ERROR"}
+        });
+
+        this->add_transitions("MANGUEIRA_ALIGN_YAW", {
+            {"ALIGNED", "MANGUEIRA_ALIGN_FINAL"},
+            {"HOSE_LOST", "RISE"},
+            {"ERROR", "ERROR"}
+        });
+
+        this->add_transitions("MANGUEIRA_ALIGN_FINAL", {
+            {"FINAL_ALIGNED", "DROP_HOOK"},
+            {"HOSE_LOST", "RISE"},
             {"ERROR", "ERROR"}
         });
 
