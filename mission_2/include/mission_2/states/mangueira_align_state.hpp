@@ -220,6 +220,7 @@ public:
                     phase_counter_ = 0;
                     err_x_prev_    = 0.0f;
                     err_y_prev_    = 0.0f;
+                    this->fixed_x_ = this->drone_->getLocalPosition().x();
                 }
             } else {
                 phase_counter_ = 0;
@@ -233,8 +234,7 @@ public:
 
         case Phase::FINE: {
             // Fine XY centering — XY velocity + Z position hold, yaw fixed
-            drone_->setMixedSetpoint(vx, vy, entry_z_,
-                static_cast<float>(this->aligned_yaw_));
+            //drone_->setMixedSetpoint(vx, vy, entry_z_, static_cast<float>(this->aligned_yaw_));
                 //static_cast<float>(drone_->getOrientation()[2]));
             if (err_mag < fine_tolerance_) {
                 if (++phase_counter_ >= fine_frames_) {
@@ -280,6 +280,7 @@ private:
     float entry_z_;
 
     float aligned_yaw_;
+    float fixed_x_;
 
     float err_x_prev_, err_y_prev_;
     PidController pid_yaw_;

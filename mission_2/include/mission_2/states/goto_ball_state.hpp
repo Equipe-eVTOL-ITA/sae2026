@@ -23,7 +23,8 @@ public:
         drone_->log("");
         drone_->log("STATE: GOTO_BALL");
 
-        trigger_score_ = *blackboard.get<float>("ball_trigger_score");
+        trigger_score_ = blackboard.contains("ball_trigger_score")
+            ? *blackboard.get<float>("ball_trigger_score") : 10000.0f;
         
         // PIDs
         pid_x_ = PidController(
@@ -61,7 +62,7 @@ public:
 
         if (!is_detected) {
             ++lost_detection_count_;
-            // speed=0 is a no-op in move_local_by_waypoint — hold directly
+            // speed=0 is a no-op in move_local_constant_step — hold directly
             auto cur = drone_->getLocalPosition();
             drone_->setLocalPosition(
                 static_cast<float>(cur.x()), static_cast<float>(cur.y()),
@@ -74,13 +75,9 @@ public:
 
         lost_detection_count_ = 0;
 
-        float score = 0.0f;
         float x_error = 0.0f;
         float y_error = 0.0f;
 
-        if (blackboard.contains("ball_target_score")) {
-            score = *blackboard.get<float>("ball_target_score");
-        }
         if (blackboard.contains("ball_x_error")) {
             x_error = *blackboard.get<float>("ball_x_error");
         }
@@ -88,9 +85,11 @@ public:
             y_error = *blackboard.get<float>("ball_y_error");
         }
 
+        float score = blackboard.contains("ball_target_score")
+            ? *blackboard.get<float>("ball_target_score") : 0.0f;
         if (score >= trigger_score_) {
-            move_local_by_waypoint(drone_, drone_->getLocalPosition(), 0.0f);
-            drone_->log("Reached ball trigger score.");
+            move_local_constant_step(drone_, drone_->getLocalPosition(), 0.0f);
+            drone_->log("Ball trigger score reached (" + std::to_string(score) + ").");
             return "REACHED";
         }
 
@@ -116,7 +115,7 @@ public:
         float speed = std::sqrt(vx_forward*vx_forward + vy_lateral*vy_lateral + vz_vertical*vz_vertical);
         if (speed < 0.1f) speed = 0.1f;
 
-        move_local_by_waypoint(
+        move_local_constant_step(
             drone_,
             target_pos,
             speed,

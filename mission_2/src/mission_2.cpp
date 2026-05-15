@@ -237,9 +237,12 @@ public:
             // Mission 2 Parameters
             {"search_speed",           0.5},
             {"search_radius",          3.0},
-            {"ball_trigger_score",     20000.0},
+            {"ball_trigger_score",      10000.0}, // área (px²) para transitar GOTO_BALL → RISE
+            {"ball_diameter_m",         0.25},  // diâmetro real da bola em metros
+            {"ball_cam_scale",          0.7},   // tan(FOV/2) da câmera horizontal
+            {"ball_resize_width",       600.0}, // largura de resize do ball_detector
             {"ball_approach_velocity", 0.12},
-            {"ball_distance_scale",    100.0},
+            {"ball_distance_scale",    100.0},  // mantido para compatibilidade de log
             {"ball_min_area",          100.0},
             {"ball_max_area",        30000.0},
             {"ball_confirm_frames",      3.0},
@@ -325,6 +328,24 @@ public:
                     }
                 }
 
+                // Estimativa de distância por câmera pinhole + diâmetro conhecido:
+                //   r_px = sqrt(area / π)
+                //   dist = D · W / (4 · r_px · cam_scale)
+                // onde D = diâmetro real da bola, W = largura da imagem em pixels
+                float ball_diam  = fsm_->blackboard_get<float>("ball_diameter_m")
+                    ? *fsm_->blackboard_get<float>("ball_diameter_m")  : 0.25f;
+                float cam_scale  = fsm_->blackboard_get<float>("ball_cam_scale")
+                    ? *fsm_->blackboard_get<float>("ball_cam_scale")   : 0.7f;
+                float resize_w   = fsm_->blackboard_get<float>("ball_resize_width")
+                    ? *fsm_->blackboard_get<float>("ball_resize_width"): 600.0f;
+
+                float r_px   = (ball_last_score_ > 0.0f)
+                    ? std::sqrt(ball_last_score_ / M_PI) : 0.0f;
+                float dist_m = (r_px > 0.5f)
+                    ? (ball_diam * resize_w / (4.0f * r_px * cam_scale))
+                    : 99.0f;
+                fsm_->blackboard_set<float>("ball_distance_m", dist_m);
+
                 auto r = ball_bayes_.query();
                 fsm_->blackboard_set<bool>("ball_is_detected", r.detected);
                 if (r.detected) {
@@ -335,15 +356,11 @@ public:
 
                 // Log periódico (a cada 10 callbacks com detecção bruta válida)
                 if (raw_ok) {
-                    float* k_ptr = fsm_->blackboard_get<float>("ball_distance_scale");
-                    float k_ball = k_ptr ? *k_ptr : 100.0f;
-                    float est_dist = (ball_last_score_ > 0.0f)
-                        ? (k_ball / std::sqrt(ball_last_score_)) : -1.0f;
                     if (ball_log_counter_++ % 10 == 0) {
                         RCLCPP_INFO(this->get_logger(),
-                            "[BALL] raw=(%.2f,%.2f) area=%.0f est≈%.2fm ratio=%.1f det=%s",
+                            "[BALL] raw=(%.2f,%.2f) area=%.0f dist≈%.2fm ratio=%.1f det=%s",
                             msg->x_error, msg->y_error, ball_last_score_,
-                            est_dist, r.ratio, r.detected ? "YES" : "no");
+                            dist_m, r.ratio, r.detected ? "YES" : "no");
                     }
                 } else {
                     ball_log_counter_ = 0;

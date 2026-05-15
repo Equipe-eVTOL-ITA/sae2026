@@ -19,10 +19,13 @@ mission_2_node:
     max_horizontal_velocity: 1.5
 
     # Mission 2 Parameters
-    search_speed: 0.3
-    search_radius: 0.65
-    ball_trigger_score: 10000.0    # área maior => GOTO_BALL segue um pouco mais perto da bola
-    ball_distance_scale: 100.0
+    search_speed: 0.2
+    search_radius: 1.0
+    ball_trigger_score: 12000.0   # área (px²) para transitar GOTO_BALL → RISE
+    ball_diameter_m: 0.25         # diâmetro físico da bola (m)
+    ball_cam_scale: 0.70          # tan(FOV/2) da câmera horizontal
+    ball_resize_width: 600.0      # largura de resize do ball_detector (px)
+    ball_distance_scale: 100.0    # mantido para compatibilidade de log
     ball_min_area: 100.0
     ball_max_area: 30000.0
     ball_confirm_frames: 1.0       # bola passa 1 frame pelo FOV antes de sair — não aguardar 3
@@ -42,7 +45,7 @@ mission_2_node:
     ball_approach_velocity: 0.5
     ball_kp_x: 0.5
     ball_ki_x: 0.0
-    ball_kd_x: 0.3
+    ball_kd_x: 0.5
     ball_kp_y: 0.5
     ball_ki_y: 0.0
     ball_kd_y: 0.1
@@ -60,18 +63,18 @@ mission_2_node:
     align_translate_tolerance: 0.25
     align_translate_frames: 5.0
     # Phase 2 — yaw alignment
-    align_yaw_frames: 5.0
+    align_yaw_frames: 3.0
     # Phase 3 — fine centering
-    align_fine_tolerance: 0.10
+    align_fine_tolerance: 0.2
     align_fine_frames: 8.0
     # Yaw PID (slow: 180° ambiguity makes hose angle noisy)
     align_kp_y: 0.5
-    align_ki_y: 0.0
+    align_ki_y: 0.03
     align_kd_y: 0.13
     align_kp_yaw: 1.0             # ganho do yaw step (x0.05 clamp → ≈1 rad/s max)
     align_ki_yaw: 0.0
     align_kd_yaw: 0.05
-    hose_approach_speed: 0.2
+    hose_approach_speed: 1.0
     hook_script_path: "~/evtol/dev/scripts/drop_hook.py"
     # Return-to-base parameters
     max_vel_goto: 0.5                  # velocidade máxima de retorno (m/s)

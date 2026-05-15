@@ -59,7 +59,7 @@ public:
             }
             if (detection_counter_ >= min_detections_) {
                 blackboard.set<int>("confirmed_aruco_id", last_detected_id_);
-                move_local_by_waypoint(drone_, drone_->getLocalPosition(), 0.0f);
+                move_local_constant_step(drone_, drone_->getLocalPosition(), 0.0f);
                 drone_->log("ArUco ID " + std::to_string(last_detected_id_) + " confirmed during initial ascent. Transitioning.");
                 return "ARUCO_FOUND";
             }
@@ -76,7 +76,7 @@ public:
         target_pos.z() = z_max_search_;
         
         // Move slowly upwards. If it reaches the target altitude (within tolerance), start spiral search.
-        if (move_local_by_waypoint(drone_, target_pos, 0.5f, 0.3f)) {
+        if (move_local_constant_step(drone_, target_pos, 0.5f, 0.3f)) {
             move_local_by_vel_as_position(drone_, 0.0f, 0.0f, 0.0f); // hold position
             drone_->log("Reached max search altitude. Switching to spiral search.");
             return "MAX_ALTITUDE_REACHED";
