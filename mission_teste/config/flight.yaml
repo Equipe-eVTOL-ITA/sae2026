@@ -1,0 +1,30 @@
+teste_node:
+  ros__parameters:
+    # Takeoff
+    takeoff_height:        -1.5    # mais conservador que simulação
+    max_vertical_velocity:  0.8
+    position_tolerance:     0.20
+
+    # Landing
+    landing_velocity_max:   0.3
+    landing_velocity_min:   0.10
+    max_base_height:        0.5
+    landing_timeout:        8.0
+
+    # GoToTeste — waypoint de aproximação antes do align
+    max_horizontal_velocity: 0.4
+    position_tolerance_mov:  0.20
+    x:  1.0
+    y:  0.0
+    z: -1.5
+
+    # AlignState
+    base_tolerance:     0.12    # metros — ligeiramente mais folgado que simulação
+    base_max_velocity:  0.20    # m/s — mais lento no voo real
+    base_kp_x:          0.50
+    base_kp_y:          0.50
+    base_kd_x:          0.05
+    base_kd_y:          0.05
+    cam_scale:          0.70    # tan(FOV/2), FOV≈70° — ajustar para a câmera real
+    align_frames:       15.0    # mais frames para confirmar (mais conservador)
+    align_timeout:      40.0

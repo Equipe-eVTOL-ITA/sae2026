@@ -1,0 +1,30 @@
+teste_node:
+  ros__parameters:
+    # Takeoff
+    takeoff_height:        -2.0
+    max_vertical_velocity:  1.2
+    position_tolerance:     0.15
+
+    # Landing
+    landing_velocity_max:   0.5
+    landing_velocity_min:   0.15
+    max_base_height:        0.5
+    landing_timeout:        5.0
+
+    # GoToTeste — waypoint de aproximação antes do align
+    max_horizontal_velocity: 0.5
+    position_tolerance_mov:  0.15
+    x:  1.0
+    y:  0.0
+    z: -2.0
+
+    # AlignState
+    base_tolerance:     0.10    # metros — erro máximo em X e Y para confirmar
+    base_max_velocity:  0.30    # m/s
+    base_kp_x:          0.70
+    base_kp_y:          0.70
+    base_kd_x:          0.05
+    base_kd_y:          0.05
+    cam_scale:          0.70    # tan(FOV/2), FOV≈70°
+    align_frames:       10.0    # frames consecutivos dentro da tolerância
+    align_timeout:      30.0    # timeout global em segundos
