@@ -215,6 +215,7 @@ public:
             if (!align_yaw_ || yaw_err_abs < yaw_tolerance_) {
                 if (++phase_counter_ >= yaw_frames_) {
                     drone_->log("ALIGN Phase 2 DONE (yaw). -> FINE");
+                    this->aligned_yaw_ = this->drone_->getOrientation()[2];
                     phase_         = Phase::FINE;
                     phase_counter_ = 0;
                     err_x_prev_    = 0.0f;
@@ -233,7 +234,8 @@ public:
         case Phase::FINE: {
             // Fine XY centering — XY velocity + Z position hold, yaw fixed
             drone_->setMixedSetpoint(vx, vy, entry_z_,
-                static_cast<float>(drone_->getOrientation()[2]));
+                static_cast<float>(this->aligned_yaw_));
+                //static_cast<float>(drone_->getOrientation()[2]));
             if (err_mag < fine_tolerance_) {
                 if (++phase_counter_ >= fine_frames_) {
                     drone_->log("MANGUEIRA_ALIGN: hose centered (all 3 phases done)!");
@@ -276,6 +278,8 @@ private:
     float kp_yaw_, kd_yaw_;
     float max_yaw_rate_;
     float entry_z_;
+
+    float aligned_yaw_;
 
     float err_x_prev_, err_y_prev_;
     PidController pid_yaw_;

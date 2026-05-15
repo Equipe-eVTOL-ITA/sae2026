@@ -1,0 +1,17 @@
+ball_detector:
+  ros__parameters:
+    # ROI vertical: exclui os 'roi_margin' pixels do topo e da base da imagem.
+    # Elimina false positives no chão (fundo da imagem) e no céu (topo).
+    # A imagem é redimensionada para resize_width=600 antes da detecção.
+    # Para uma imagem 600×450 (4:3): roi_margin=100 elimina ~22% do topo e base.
+    # roi_margin=0 desativa o filtro.
+    roi_margin: 100
+
+    # Outros parâmetros do detector (sobrescreve os defaults do nó)
+    orange_h_min: 5
+    orange_h_max: 30
+    orange_s_min: 80
+    orange_v_min: 50
+    min_circularity: 0.55
+    min_area: 100.0
+    max_area: 30000.0

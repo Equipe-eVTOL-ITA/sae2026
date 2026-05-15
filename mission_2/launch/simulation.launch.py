@@ -66,9 +66,11 @@ def generate_launch_description():
         output='screen'
     )
 
+    ball_detector_config = os.path.join(pkg_mission_2, "config", "ball_detector.yaml")
     ball_detector_node = Node(
         package='ball_detector',
         executable='ball_detector_node',
+        parameters=[ball_detector_config],
         output='screen'
     )
 
