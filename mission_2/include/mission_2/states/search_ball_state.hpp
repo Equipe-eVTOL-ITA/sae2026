@@ -107,7 +107,7 @@ public:
                 // Hold slow arc even during brief misses (blackboard filter
                 // means ball_is_detected stays True for ~1s, so this is a
                 // genuine loss after the filter expires).
-                move_local_by_waypoint(drone_, target, search_speed_ * 0.15f,
+                move_local_constant_step(drone_, target, search_speed_ * 0.15f,
                                        0.1f, current_angle_);
                 if (centering_miss_counter_ >= centering_miss_tol_) {
                     centering_phase_        = false;
@@ -125,7 +125,7 @@ public:
             // This immediately points the camera toward the ball.
             float target_yaw = current_angle_ + x_error * centering_kp_;
 
-            move_local_by_waypoint(drone_, target, search_speed_ * 0.15f,
+            move_local_constant_step(drone_, target, search_speed_ * 0.15f,
                                    0.1f, target_yaw);
 
             if (std::abs(x_error) < centering_threshold_) {
@@ -160,7 +160,7 @@ public:
         target_pos.x() += search_radius_ * std::cos(current_angle_);
         target_pos.y() += search_radius_ * std::sin(current_angle_);
 
-        move_local_by_waypoint(drone_, target_pos, search_speed_, 0.1f, current_angle_);
+        move_local_constant_step(drone_, target_pos, search_speed_, 0.1f, current_angle_);
         return "";
     }
 

@@ -14,7 +14,7 @@
  * for `hover_before_landing_ticks` ticks before transitioning to ARRIVED.
  *
  * Improvements over the generic GoToState:
- *  - Velocity-limited via move_local_by_waypoint (smoother return)
+ *  - Velocity-limited via move_local_constant_step (smoother return)
  *  - Configurable hover before landing so the drone is stable before descent
  */
 class GoToBaseState : public fsm::State {
@@ -77,7 +77,7 @@ public:
         // Outside tolerance: approach at limited velocity
         hover_counter_ = 0;
         Eigen::Vector3d tgt(target_x_, target_y_, target_z_);
-        move_local_by_waypoint(drone_, tgt, max_vel_, tolerance_, target_yaw_);
+        move_local_constant_step(drone_, tgt, max_vel_, tolerance_, target_yaw_);
         return "";
     }
 

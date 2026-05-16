@@ -115,7 +115,7 @@ public:
 
         auto cur = drone_->getLocalPosition();
 
-        // Direct setLocalPosition bypasses move_local_by_waypoint's tolerance check
+        // Direct setLocalPosition bypasses move_local_constant_step's tolerance check
         // (0.1 m). Since vertical_adjust ≤ 0.08 m (max_vertical_step), the waypoint
         // helper's pos_reached = true every tick → altitude is silently ignored.
         float target_yaw = static_cast<float>(drone_->getOrientation()[2]) + yaw_adjust;

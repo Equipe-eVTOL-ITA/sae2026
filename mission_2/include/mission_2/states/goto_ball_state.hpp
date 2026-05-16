@@ -61,7 +61,7 @@ public:
 
         if (!is_detected) {
             ++lost_detection_count_;
-            // speed=0 is a no-op in move_local_by_waypoint — hold directly
+            // speed=0 is a no-op in move_local_constant_step — hold directly
             auto cur = drone_->getLocalPosition();
             drone_->setLocalPosition(
                 static_cast<float>(cur.x()), static_cast<float>(cur.y()),
@@ -89,7 +89,7 @@ public:
         }
 
         if (score >= trigger_score_) {
-            move_local_by_waypoint(drone_, drone_->getLocalPosition(), 0.0f);
+            move_local_constant_step(drone_, drone_->getLocalPosition(), 0.0f);
             drone_->log("Reached ball trigger score.");
             return "REACHED";
         }
@@ -116,7 +116,7 @@ public:
         float speed = std::sqrt(vx_forward*vx_forward + vy_lateral*vy_lateral + vz_vertical*vz_vertical);
         if (speed < 0.1f) speed = 0.1f;
 
-        move_local_by_waypoint(
+        move_local_constant_step(
             drone_,
             target_pos,
             speed,
