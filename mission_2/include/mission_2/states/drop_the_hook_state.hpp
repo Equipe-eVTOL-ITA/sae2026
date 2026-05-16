@@ -39,11 +39,6 @@ public:
                 drone_->log("Warning: Hook drop script returned non-zero exit code.");
             }
             executed_ = true;
-
-            // Update target_z so the drone returns at the current altitude
-            float current_z = drone_->getLocalPosition().z();
-            blackboard.set<float>("target_z", current_z);
-
             return "HOOK_DROPPED";
         }
 

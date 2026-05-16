@@ -218,8 +218,8 @@ public:
                     this->aligned_yaw_ = this->drone_->getOrientation()[2];
                     phase_         = Phase::FINE;
                     phase_counter_ = 0;
-                    err_x_prev_    = 0.0f;
-                    err_y_prev_    = 0.0f;
+                    err_x_prev_    = err_x;  // seed: d_err=0 on first FINE tick → pure P
+                    err_y_prev_    = err_y;
                     this->fixed_x_ = this->drone_->getLocalPosition().x();
                 }
             } else {
@@ -233,9 +233,8 @@ public:
         }
 
         case Phase::FINE: {
-            // Fine XY centering — XY velocity + Z position hold, yaw fixed
-            //drone_->setMixedSetpoint(vx, vy, entry_z_, static_cast<float>(this->aligned_yaw_));
-                //static_cast<float>(drone_->getOrientation()[2]));
+            // Fine XY centering — XY velocity + Z position hold, yaw fixed at Phase 2 result
+            drone_->setMixedSetpoint(vx, vy, entry_z_, static_cast<float>(this->aligned_yaw_));
             if (err_mag < fine_tolerance_) {
                 if (++phase_counter_ >= fine_frames_) {
                     drone_->log("MANGUEIRA_ALIGN: hose centered (all 3 phases done)!");

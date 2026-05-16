@@ -49,7 +49,7 @@ mission_2_node:
     ball_kp_y: 0.5
     ball_ki_y: 0.0
     ball_kd_y: 0.1
-    rise_target_z: -3.5         # reduzido: a 2m mangueira ≈150px (era 100px a 3m)
+    rise_target_z: -2.0         # 2m: mangueira ≈150px → detectável; erros de alinhamento menores
     rise_climb_rate: 0.3
     rise_timeout_s: 12.0        # timeout de segurança: nunca travar indefinidamente
     align_tolerance_y: 0.2
@@ -74,7 +74,7 @@ mission_2_node:
     align_kp_yaw: 1.0             # ganho do yaw step (x0.05 clamp → ≈1 rad/s max)
     align_ki_yaw: 0.0
     align_kd_yaw: 0.05
-    hose_approach_speed: 1.0
+    hose_approach_speed: 0.2
     hook_script_path: "~/evtol/dev/scripts/drop_hook.py"
     # Return-to-base parameters
     max_vel_goto: 0.5                  # velocidade máxima de retorno (m/s)
