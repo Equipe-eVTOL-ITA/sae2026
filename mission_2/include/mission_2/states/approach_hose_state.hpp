@@ -58,18 +58,19 @@ public:
             return "HOSE_FOUND";
         }
 
-        // Move forward (body frame +X) at fixed altitude
-        auto cur = drone_->getLocalPosition();
-        float yaw = entry_yaw_;
-        float wx  = approach_speed_ * std::cos(yaw);
-        float wy  = approach_speed_ * std::sin(yaw);
-        constexpr float dt = 0.05f;
-        drone_->setLocalPosition(
-            static_cast<float>(cur.x()) + wx * dt,
-            static_cast<float>(cur.y()) + wy * dt,
-            entry_z_,
-            yaw
-        );
+        // // Move forward (body frame +X) at fixed altitude
+        // auto cur = drone_->getLocalPosition();
+        float wx  = approach_speed_ * std::cos(entry_yaw_);
+        float wy  = approach_speed_ * std::sin(entry_yaw_);
+        // constexpr float dt = 0.05f;
+        // drone_->setLocalPosition(
+        //     static_cast<float>(cur.x()) + wx * dt,
+        //     static_cast<float>(cur.y()) + wy * dt,
+        //     entry_z_,
+        //     entry_yaw_
+        // );
+        // deixei no setLocalVelocity por enquanto. O position não funciona bem
+        drone_->setLocalVelocity(wx, wy, 0, 0);
 
         return "";
     }
