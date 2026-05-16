@@ -10,6 +10,7 @@
 #include "drone/Drone.hpp"
 #include <std_msgs/msg/float32.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <std_srvs/srv/set_bool.hpp>
 #include <custom_msgs/msg/base_detection.hpp>
 #include <geometry_msgs/msg/point.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -220,17 +221,32 @@ public:
             }
         );
 
+        play_audio_client_ = this->create_client<std_srvs::srv::SetBool>("play_audio");
+
         pressure_analysis_pub_ = this->create_publisher<std_msgs::msg::String>(
-            "/pressure_analysis",
-            10
-        );
+            "/pressure_analysis", 10);
 
         this->fsm_->blackboard_set<std::function<void(std::string)>>(
             "publish_pressure_analysis",
             [this](std::string press_analysis){
-                std_msgs::msg::String msg;
-                msg.data=press_analysis;
-                this->pressure_analysis_pub_->publish(msg);
+                // Publish topic for manometro_detector frame saving
+                std_msgs::msg::String topic_msg;
+                topic_msg.data = press_analysis;
+                this->pressure_analysis_pub_->publish(topic_msg);
+
+                // Call audio service (guards against overlapping playback)
+                if (!play_audio_client_->service_is_ready()) {
+                    RCLCPP_WARN(this->get_logger(), "play_audio service not available");
+                    return;
+                }
+                auto req = std::make_shared<std_srvs::srv::SetBool::Request>();
+                req->data = (press_analysis.find("above") != std::string::npos);
+                play_audio_client_->async_send_request(req,
+                    [this](rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture fut){
+                        auto res = fut.get();
+                        RCLCPP_INFO(this->get_logger(), "play_audio: %s (%s)",
+                            res->success ? "ok" : "skip", res->message.c_str());
+                    });
             }
         );
 
@@ -302,6 +318,7 @@ private:
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr pressure_sub_;
     rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr pos_manometer_sub_;
+    rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr play_audio_client_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pressure_analysis_pub_;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
     nav_msgs::msg::Path trajectory_;
