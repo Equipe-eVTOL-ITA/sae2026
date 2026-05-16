@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Flight launch configuration for SAE 2026 — Mission 2.
+Real flight launch configuration for SAE 2026 — Mission 1.
 Launches the drone node, FSM node, and supporting services.
 """
 
@@ -15,11 +15,11 @@ from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
 
-    pkg_mission_2 = get_package_share_directory('mission_2')
-    flight_params = os.path.join(pkg_mission_2, "config", "flight.yaml")
+    pkg_mission_1 = get_package_share_directory('mission_1_H')
+    flight_params = os.path.join(pkg_mission_1, "config", "flight.yaml")
 
     timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-    bag_dir = os.path.expanduser(f'~/evtol/mission_logs/mission_2_{timestamp}')
+    bag_dir = os.path.expanduser(f'~/evtol/mission_logs/mission_1_H_{timestamp}')
     bag_topics = [
         '/rosout',
         '/telemetry/logs',
@@ -27,7 +27,8 @@ def generate_launch_description():
         '/telemetry/position',
         '/telemetry/system_health',
         '/drone_trajectory',
-        '/ball_detection',
+        '/bouncing_detection',
+        '/discovered_bases',
         '/fmu/out/vehicle_local_position',
         '/fmu/out/vehicle_status',
         '/fmu/out/battery_status',
@@ -39,64 +40,51 @@ def generate_launch_description():
         output='screen'
     )
 
+    # Declare the mission executable argument
     exec_arg = DeclareLaunchArgument(
         "mission",
-        default_value="mission_2",
+        default_value="mission_1_H",
         description="Executable that implements the mission FSM")
 
-    vertical_camera_node = Node(
+    webcam_publisher_node = Node(
         package='camera_publisher',
         executable='webcam',
-        output='screen',
-        parameters=[{'camera_name': 'vertical', 'use_compressed': True, 'video_source': '/dev/video0'}]
+        output='screen'
     )
-
-    horizontal_camera_node = Node(
-        package='camera_publisher',
-        executable='webcam',
-        output='screen',
-        parameters=[{'camera_name': 'horizontal', 'use_compressed': True, 'video_source': '/dev/video2'}]
-    )
-
+    # System health monitor (from drone_lib)
     system_health_node = Node(
+        
         package='drone_lib',
         executable='system_health',
         parameters=[flight_params],
         output='screen'
     )
 
+    # Mission FSM node (delayed start to let other nodes initialize)
     fsm_node = Node(
-        package='mission_2',
+        package='mission_1_H',
         executable=LaunchConfiguration("mission"),
         parameters=[flight_params],
         output='screen'
     )
 
-    ball_detector_config = os.path.join(pkg_mission_2, "config", "ball_detector.yaml")
-    ball_detector_node = Node(
-        package='ball_detector',
-        executable='ball_detector_node',
-        parameters=[ball_detector_config],
-        output='screen'
-    )
-
-    mangueira_detector_config = os.path.join(pkg_mission_2, "config", "mangueira_detector.yaml")
-    mangueira_detector_node = Node(
-        package='mangueira_detector',
-        executable='mangueira_detector_node',
-        parameters=[mangueira_detector_config],
-        output='screen'
-    )
-
     delayed_fsm_node = TimerAction(period=5.0, actions=[fsm_node])
+
+    # Vision node
+
+    bouncing_cv_node = Node(
+        package='RDPformas',#'bouncing_detector',
+        executable='RDPformas',#'bouncing_detector_node',
+        output='screen'
+    )
+
+    # Webcam publisher node
 
     return LaunchDescription([
         exec_arg,
         bag_record,
-        vertical_camera_node,
-        horizontal_camera_node,
         system_health_node,
-        ball_detector_node,
-        mangueira_detector_node,
-        delayed_fsm_node,
+        bouncing_cv_node,
+        webcam_publisher_node,
+        delayed_fsm_node
     ])
