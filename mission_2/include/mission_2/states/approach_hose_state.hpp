@@ -36,6 +36,7 @@ public:
 
         // Fix altitude from the end of RISE so we don't drift vertically
         entry_z_ = static_cast<float>(drone_->getLocalPosition().z());
+        entry_yaw_ = static_cast<float>(drone_->getOrientation()[2]);
     }
 
     std::string act(fsm::Blackboard &blackboard) override {
@@ -51,7 +52,7 @@ public:
                 static_cast<float>(cur.x()),
                 static_cast<float>(cur.y()),
                 entry_z_,
-                static_cast<float>(drone_->getOrientation()[2])
+                entry_yaw_
             );
             drone_->log("Mangueira found! Transitioning to ALIGN.");
             return "HOSE_FOUND";
@@ -59,7 +60,7 @@ public:
 
         // Move forward (body frame +X) at fixed altitude
         auto cur = drone_->getLocalPosition();
-        float yaw = static_cast<float>(drone_->getOrientation()[2]);
+        float yaw = entry_yaw_;
         float wx  = approach_speed_ * std::cos(yaw);
         float wy  = approach_speed_ * std::sin(yaw);
         constexpr float dt = 0.05f;
@@ -77,4 +78,5 @@ private:
     std::shared_ptr<Drone> drone_;
     float approach_speed_;
     float entry_z_;
+    float entry_yaw_;
 };
