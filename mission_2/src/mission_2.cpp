@@ -507,7 +507,8 @@ int main(int argc, const char *argv[]) {
     auto drone = std::make_shared<Drone>();
     auto mission_node = std::make_shared<Mission2Node>(drone);
 
-    executor.add_node(drone);
+    // The Drone owns its own MultiThreadedExecutor + spin thread internally,
+    // so it is intentionally NOT added to this outer executor.
     executor.add_node(mission_node);
 
     executor.spin();

@@ -49,6 +49,7 @@ def generate_launch_description():
     webcam_publisher_node = Node(
         package='camera_publisher',
         executable='webcam',
+        parameters=[{'video_source': '/dev/video2'}],
         output='screen'
     )
     # System health monitor (from drone_lib)

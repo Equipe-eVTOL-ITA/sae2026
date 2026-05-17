@@ -1,0 +1,13 @@
+vertical_camera:
+  ros__parameters:
+    camera_name: 'vertical'
+    use_compressed: true
+    video_source: '/dev/video0'
+    horizontal_flip: false
+    vertical_flip: false
+
+    # Telemetry-tunable output. Reduce for low-bandwidth links.
+    frame_width: 640
+    frame_height: 640
+    publish_rate: 10.0   # Hz
+    jpeg_quality: 70     # 1..100

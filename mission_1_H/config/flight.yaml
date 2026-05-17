@@ -5,20 +5,20 @@
 mission_1_H_node:
   ros__parameters:
     # FSM parameters
-    takeoff_height: -1.5
+    takeoff_height: -1.4
     position_tolerance: 0.2
     max_vertical_velocity: 1.0
-    max_horizontal_velocity: 1.5
+    max_horizontal_velocity: 0.5
 
     # Landing parameters
     landing_velocity_max: 0.5
     landing_velocity_min: 0.1
 
     # Mission 1 Parameters
-    z_max_search: -1.5
-    aruco_spiral_step: 1.0
+    z_max_search: -1.4
+    aruco_spiral_step: 0.7
     aruco_spiral_arc_step: 0.5
-    search_aruco_velocity: 0.5
+    search_aruco_velocity: 0.4
     aruco_persistence_frames: 3.0
     aruco_tolerance: 0.25
     aruco_align_frames: 5.0
@@ -43,9 +43,9 @@ mission_1_H_node:
     debug_pub_interval: 0.2
 
     # H search base parameters
-    lambda_1:  0.0
-    lambda_2:  1.2
-    lambda_3: -1.2
-    lambda_4:  0.0
-    distancia_percorrida_perpendicular: 2.5
+    lambda_1:  0.3
+    lambda_2:  1.8
+    lambda_3:  -1.8
+    lambda_4:  -0.3
+    distancia_percorrida_perpendicular: 3.0
     h_search_dwell_ticks: 40.0

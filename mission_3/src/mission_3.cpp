@@ -17,7 +17,6 @@
 #include <nav_msgs/msg/path.hpp>
 
 // Standard states from stdstates
-#include "stdstates/arming_state.hpp"
 #include "stdstates/takeoff_state.hpp"
 #include "stdstates/landing_state.hpp"
 #include "mission_3/align_state.hpp"
@@ -60,7 +59,6 @@ public:
         // states
         
         
-        this->add_state("ARMING",   std::make_unique<ArmingState>());
         this->add_state("TAKEOFF",  std::make_unique<TakeoffState>());
         this->add_state("GOTO",     std::make_unique<GoToState>());
         this->add_state("ALIGN",    std::make_unique<AlignState>());
@@ -71,11 +69,6 @@ public:
         this->add_state("TERMINATION", std::make_unique<TerminationState>());
 
         // transitions
-
-        this->add_transitions("ARMING", {
-            {"ARMED", "TAKEOFF"},
-            {"ERROR", "ERROR"}
-        });
 
         this->add_transitions("TAKEOFF", {
             {"TAKEOFF COMPLETED", "GOTO"},
@@ -120,7 +113,7 @@ public:
             {"ERROR","ERROR"}
         });
 
-        this->set_initial_state("ARMING");
+        this->set_initial_state("TAKEOFF");
     }
     
 };
@@ -339,7 +332,8 @@ int main(int argc, const char *argv[]) {
     auto drone = std::make_shared<Drone>();
     auto mission_node = std::make_shared<Fase3Node>(drone);
 
-    executor.add_node(drone);
+    // The Drone owns its own MultiThreadedExecutor + spin thread internally,
+    // so it is intentionally NOT added to this outer executor.
     executor.add_node(mission_node);
 
     executor.spin();

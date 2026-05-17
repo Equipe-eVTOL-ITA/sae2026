@@ -611,7 +611,6 @@ int main(int argc, const char *argv[]) {
     auto drone = std::make_shared<Drone>();
     auto mission_node = std::make_shared<Mission1Node>(drone);
 
-    executor.add_node(drone);
     executor.add_node(mission_node);
 
     executor.spin();

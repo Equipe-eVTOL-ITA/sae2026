@@ -15,3 +15,11 @@ ball_detector:
     min_circularity: 0.55
     min_area: 100.0
     max_area: 30000.0
+
+    # ---- Telemetry / debug image tuning ----
+    # Set debug_image / debug_mask to false to fully silence the debug topics.
+    debug_image: false
+    debug_mask: false
+    debug_publish_rate: 5.0   # Hz; <=0 publishes every processed frame
+    debug_max_width: 320      # px; <=0 keeps detector resize_width
+    debug_jpeg_quality: 60    # 1..100
