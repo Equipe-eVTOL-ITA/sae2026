@@ -22,6 +22,9 @@ def generate_launch_description():
     pkg_mission_3 = get_package_share_directory('mission_3')
     simulation_params = os.path.join(pkg_mission_3, "config", "simulation.yaml")
 
+    pkg_manometro = get_package_share_directory('manometro_detector')
+    manometro_params = os.path.join(pkg_manometro, "config", "manometro_detector.yaml")
+
     pkg_audio_alert = get_package_share_directory('audio_alert')
     audio_above_path = os.path.join(pkg_audio_alert, 'audio', 'above.mp3')
     audio_below_path = os.path.join(pkg_audio_alert, 'audio', 'below.mp3')
@@ -57,7 +60,7 @@ def generate_launch_description():
     vision_node = Node(
         package='manometro_detector',
         executable='manometro_detector',
-        parameters=[simulation_params],
+        parameters=[manometro_params],  # detector-specific YAML (image_topic, debug, calibration)
         output='screen'
     )
 

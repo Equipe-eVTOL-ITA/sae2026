@@ -18,6 +18,9 @@ def generate_launch_description():
     pkg_mission_1 = get_package_share_directory('mission_1_H')
     flight_params = os.path.join(pkg_mission_1, "config", "flight.yaml")
 
+    pkg_rdpformas = get_package_share_directory('RDPformas')
+    rdpformas_params = os.path.join(pkg_rdpformas, "config", "rdpformas.yaml")
+
     timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
     bag_dir = os.path.expanduser(f'~/evtol/mission_logs/mission_1_H_{timestamp}')
     bag_topics = [
@@ -50,7 +53,10 @@ def generate_launch_description():
         package='camera_publisher',
         executable='webcam',
         output='screen',
-        parameters=[{'video_source': '/dev/video2'}]
+        parameters=[{
+            'video_source': '/dev/video2',
+            'camera_name': 'vertical',   # publishes to /vertical_camera/compressed
+        }]
     )
     # System health monitor (from drone_lib)
     system_health_node = Node(
@@ -74,8 +80,9 @@ def generate_launch_description():
     # Vision node
 
     bouncing_cv_node = Node(
-        package='RDPformas',#'bouncing_detector',
-        executable='RDPformas',#'bouncing_detector_node',
+        package='RDPformas',
+        executable='RDPformas',
+        parameters=[rdpformas_params],
         output='screen'
     )
 

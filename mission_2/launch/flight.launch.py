@@ -175,6 +175,7 @@ def _launch_setup(context, *args, **kwargs):
         executable=LaunchConfiguration('mission'),
         parameters=[flight_params],
         output='screen',
+        prefix='nice -n -10',  # higher CPU priority than vision nodes
     )
     actions.append(TimerAction(period=5.0, actions=[fsm_node]))
 

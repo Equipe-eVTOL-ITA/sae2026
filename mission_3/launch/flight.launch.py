@@ -22,6 +22,9 @@ def generate_launch_description():
     pkg_mission_3 = get_package_share_directory('mission_3')
     flight_params = os.path.join(pkg_mission_3, "config", "flight.yaml")
 
+    pkg_manometro = get_package_share_directory('manometro_detector')
+    manometro_params = os.path.join(pkg_manometro, "config", "manometro_detector.yaml")
+
     # Declare the mission executable argument
     exec_arg = DeclareLaunchArgument(
         "mission",
@@ -36,7 +39,10 @@ def generate_launch_description():
     camera_publisher = Node(
         package='camera_publisher',
         executable='webcam',
-        parameters=[{'video_source': '/dev/video2'}],
+        parameters=[{
+            'video_source': '/dev/video2',
+            'camera_name': 'vertical',   # publishes to /vertical_camera/compressed
+        }],
         output='screen'
     )
     # System health monitor (from drone_lib)
@@ -60,7 +66,7 @@ def generate_launch_description():
     vision_node = Node(
         package='manometro_detector',
         executable='manometro_detector',
-        parameters=[flight_params],
+        parameters=[manometro_params],  # detector-specific YAML (image_topic, debug, calibration)
         output='screen'
     )
 
