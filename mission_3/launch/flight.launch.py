@@ -10,6 +10,7 @@ from launch.actions import DeclareLaunchArgument, TimerAction
 from launch.substitutions import LaunchConfiguration
 from launch.conditions import IfCondition
 import os
+import yaml
 from ament_index_python.packages import get_package_share_directory
 
 
@@ -62,16 +63,24 @@ def generate_launch_description():
         output='screen'
     )
 
-
     vision_node = Node(
         package='manometro_detector',
         executable='manometro_detector',
-        parameters=[manometro_params],  # detector-specific YAML (image_topic, debug, calibration)
+        parameters=[manometro_params],
         output='screen'
     )
 
-    
-    delayed_fsm_node = TimerAction(period=5.0, actions=[fsm_node])
+    # Delays vêm do YAML (camera_startup_delay, cv_startup_delay) para ajuste fácil.
+    with open(flight_params, 'r') as _f:
+        _p = yaml.safe_load(_f)
+    _params = _p.get('fase_3_node', {}).get('ros__parameters', {})
+    cam_delay = float(_params.get('camera_startup_delay', 8.0))
+    cv_delay  = float(_params.get('cv_startup_delay',     8.0))
+
+    # FSM starts immediately; vision/camera delayed so they don't compete for
+    # CPU during takeoff initialization (Drone::waitForOdometry handles sync).
+    delayed_camera = TimerAction(period=cam_delay, actions=[camera_publisher])
+    delayed_vision = TimerAction(period=cv_delay,  actions=[vision_node])
 
     rviz_node = Node(
         package='rviz2',
@@ -84,9 +93,9 @@ def generate_launch_description():
     return LaunchDescription([
         exec_arg,
         rviz_arg,
-        camera_publisher,
         system_health_node,
-        vision_node,
-        delayed_fsm_node,
+        fsm_node,           # FSM + Drone first
+        delayed_camera,     # camera after takeoff
+        delayed_vision,     # vision after takeoff
         rviz_node,
     ])

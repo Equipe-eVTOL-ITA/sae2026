@@ -189,6 +189,17 @@ public:
         // Create the FSM
         fsm_ = std::make_unique<Fase3FSM>(drone_, params);
 
+        // Callback groups: timer runs separately from CV subscribers so a slow
+        // detector callback can't block the 20Hz FSM tick that sends offboard
+        // control mode to PX4.
+        timer_cb_group_ = this->create_callback_group(
+            rclcpp::CallbackGroupType::MutuallyExclusive);
+        cv_cb_group_ = this->create_callback_group(
+            rclcpp::CallbackGroupType::MutuallyExclusive);
+
+        rclcpp::SubscriptionOptions cv_opts;
+        cv_opts.callback_group = cv_cb_group_;
+
         //subscriber leitura do manometro
         pressure_sub_ = this->create_subscription<std_msgs::msg::Float32>(
             "/measured_pressure",
@@ -197,8 +208,8 @@ public:
                 if(this->fsm_) {
                     this->fsm_->blackboard_set<float>("measured_pressure",msg->data);
                 }
-            }
-
+            },
+            cv_opts
         );
 
         //subscriber erro da posição em relação ao manometro
@@ -211,7 +222,8 @@ public:
                     this->fsm_->blackboard_set<float>("error_x",msg->x);
                     this->fsm_->blackboard_set<float>("error_y",msg->y);
                 }
-            }
+            },
+            cv_opts
         );
 
         play_audio_client_ = this->create_client<std_srvs::srv::SetBool>("play_audio");
@@ -244,14 +256,18 @@ public:
         );
 
 
+        this->declare_parameter("enable_trajectory_viz", false);
+        enable_trajectory_viz_ = this->get_parameter("enable_trajectory_viz").as_bool();
+
         // Trajectory publisher for RViz (nav_msgs/Path in ENU frame)
         path_pub_ = this->create_publisher<nav_msgs::msg::Path>("/drone_trajectory", 10);
         trajectory_.header.frame_id = "map";
 
-        // Run FSM at 20Hz (50ms period)
+        // Run FSM at 20Hz (50ms period) — dedicated callback group, see above
         timer_ = this->create_wall_timer(
             std::chrono::milliseconds(50),
-            std::bind(&Fase3Node::executeFSM, this)
+            std::bind(&Fase3Node::executeFSM, this),
+            timer_cb_group_
         );
 
         RCLCPP_INFO(this->get_logger(), "Fase 3 FSM started");
@@ -271,9 +287,13 @@ private:
         ps.pose.position.y =  (float)pos.x();   // North = NED x
         ps.pose.position.z = -(float)pos.z();   // Up    = -NED z
         ps.pose.orientation.w = 1.0;
-        trajectory_.header.stamp = ps.header.stamp;
-        trajectory_.poses.push_back(ps);
-        path_pub_->publish(trajectory_);
+        if (enable_trajectory_viz_) {
+            trajectory_.poses.push_back(ps);
+            if (trajectory_.poses.size() > 500)
+                trajectory_.poses.erase(trajectory_.poses.begin());
+            trajectory_.header.stamp = ps.header.stamp;
+            path_pub_->publish(trajectory_);
+        }
 
         if (rclcpp::ok() && !fsm_->is_finished()) {
             fsm_->execute();
@@ -308,11 +328,14 @@ private:
 
     std::shared_ptr<Drone> drone_;
     std::unique_ptr<Fase3FSM> fsm_;
+    rclcpp::CallbackGroup::SharedPtr timer_cb_group_;
+    rclcpp::CallbackGroup::SharedPtr cv_cb_group_;
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr pressure_sub_;
     rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr pos_manometer_sub_;
     rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr play_audio_client_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pressure_analysis_pub_;
+    bool enable_trajectory_viz_ = false;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
     nav_msgs::msg::Path trajectory_;
 };

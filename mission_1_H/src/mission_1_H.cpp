@@ -185,13 +185,27 @@ public:
 
         auto params = declareAndGetParameters(default_params);
 
+        // enable_trajectory_viz: false = sem publicação (menor carga de rede em voo)
+        //                        true  = publica com janela deslizante de 500 poses
+        this->declare_parameter("enable_trajectory_viz", false);
+        enable_trajectory_viz_ = this->get_parameter("enable_trajectory_viz").as_bool();
+
         // Create the FSM
         fsm_ = std::make_unique<Mission1FSM>(drone_, params);
+
+        // Callback groups: timer runs in its own MutuallyExclusive group so
+        // a slow cv_callback (heavy OpenCV/OCR) can't block the 20Hz FSM tick
+        // that sends offboard_control_mode to PX4 (critical for staying in Offboard).
+        timer_cb_group_ = this->create_callback_group(
+            rclcpp::CallbackGroupType::MutuallyExclusive);
+        cv_cb_group_ = this->create_callback_group(
+            rclcpp::CallbackGroupType::MutuallyExclusive);
 
         // Run FSM at 20Hz (50ms period)
         timer_ = this->create_wall_timer(
             std::chrono::milliseconds(50),
-            std::bind(&Mission1Node::executeFSM, this)
+            std::bind(&Mission1Node::executeFSM, this),
+            timer_cb_group_
         );
 
         // Trajectory publisher for RViz (nav_msgs/Path in ENU frame)
@@ -207,10 +221,13 @@ public:
         base_markers_pub_->publish(visualization_msgs::msg::MarkerArray{});
         trajectory_.header.frame_id = "map";
 
-        // Subscribes to the computer vision node
+        // Subscribes to the computer vision node (separate callback group from timer)
+        rclcpp::SubscriptionOptions cv_opts;
+        cv_opts.callback_group = cv_cb_group_;
         cv_sub_ = this->create_subscription<custom_msgs::msg::BouncingDetection>(
             "bouncing_detection", 10,
-            std::bind(&Mission1Node::cv_callback, this, std::placeholders::_1)
+            std::bind(&Mission1Node::cv_callback, this, std::placeholders::_1),
+            cv_opts
         );
 
         RCLCPP_INFO(this->get_logger(), "Mission 1 FSM started");
@@ -474,9 +491,13 @@ private:
         ps.pose.position.y   =  (float)pos.x();   // North = NED x
         ps.pose.position.z   = -(float)pos.z();   // Up    = -NED z
         ps.pose.orientation.w = 1.0;
-        trajectory_.header.stamp = ps.header.stamp;
-        trajectory_.poses.push_back(ps);
-        path_pub_->publish(trajectory_);
+        if (enable_trajectory_viz_) {
+            trajectory_.poses.push_back(ps);
+            if (trajectory_.poses.size() > 500)          // janela deslizante ~25s@20Hz
+                trajectory_.poses.erase(trajectory_.poses.begin());
+            trajectory_.header.stamp = ps.header.stamp;
+            path_pub_->publish(trajectory_);
+        }
 
         // ── Base markers for RViz2 — republish every 2s (empty array if no bases yet) ──
         if (pos_log_counter_ % 40 == 0) {
@@ -574,6 +595,8 @@ private:
 
     std::shared_ptr<Drone> drone_;
     std::unique_ptr<Mission1FSM> fsm_;
+    rclcpp::CallbackGroup::SharedPtr timer_cb_group_;
+    rclcpp::CallbackGroup::SharedPtr cv_cb_group_;
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Subscription<custom_msgs::msg::BouncingDetection>::SharedPtr cv_sub_;
 
@@ -586,6 +609,7 @@ private:
     float aruco_world_x_             = 0.0f;
     float aruco_world_y_             = 0.0f;
     bool  aruco_world_valid_         = false;
+    bool  enable_trajectory_viz_    = false;
     int  pos_log_counter_           = 0;
 
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;

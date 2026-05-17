@@ -55,6 +55,14 @@ fase_3_node:
     y4: 0.0
     z4: -2.2
 
+    # Visualização de trajetória no RViz2 (habilitado em simulação, desabilitado em voo)
+    enable_trajectory_viz: false
+
+    # Atrasos (segundos) para iniciar câmera e nó de visão.
+    # Em simulação Gazebo fornece a câmera e não há contenção de CPU como no Jetson.
+    camera_startup_delay: 2.0
+    cv_startup_delay: 2.0
+
 manometro_detector:
   ros__parameters:
     # Rotation correction: 0 now that the MIN-diff selection is fixed.

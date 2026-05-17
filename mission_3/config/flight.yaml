@@ -53,6 +53,15 @@ fase_3_node:
     y4: -0.0
     z4: -2.2
 
+    # Visualização de trajetória no RViz2 (desabilitado em voo para não saturar o canal)
+    enable_trajectory_viz: false
+
+    # Atrasos (segundos) para iniciar câmera e nó de visão.
+    # Permite que o FSM/Drone tomem o CPU durante a inicialização e o takeoff
+    # antes de adicionar a carga pesada de OpenCV no detector de manômetro.
+    camera_startup_delay: 2.0
+    cv_startup_delay: 2.0
+
 manometro_detector:
   ros__parameters:
     # Extra rotation applied after best_rot*90 to compensate for camera mounting.

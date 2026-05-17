@@ -10,6 +10,7 @@ from launch.actions import DeclareLaunchArgument, TimerAction
 from launch.substitutions import LaunchConfiguration
 from launch.conditions import IfCondition
 import os
+import yaml
 from ament_index_python.packages import get_package_share_directory
 
 
@@ -64,7 +65,14 @@ def generate_launch_description():
         output='screen'
     )
 
-    delayed_fsm_node = TimerAction(period=5.0, actions=[fsm_node])
+    # Delay do CV vem do YAML (cv_startup_delay). Em simulação o padrão é 0.0.
+    with open(simulation_params, 'r') as _f:
+        _p = yaml.safe_load(_f)
+    cv_delay = float(_p.get('fase_3_node', {}).get('ros__parameters', {})
+                       .get('cv_startup_delay', 0.0))
+
+    delayed_vision  = TimerAction(period=cv_delay, actions=[vision_node])
+    delayed_fsm_node = TimerAction(period=5.0,     actions=[fsm_node])
 
     rviz_node = Node(
         package='rviz2',
@@ -94,7 +102,7 @@ def generate_launch_description():
         exec_arg,
         rviz_arg,
         system_health_node,
-        vision_node,
+        delayed_vision,
         delayed_fsm_node,
         rviz_node,
         audio_node

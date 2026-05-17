@@ -11,6 +11,7 @@ from launch.substitutions import LaunchConfiguration
 from launch.conditions import IfCondition
 import os
 import datetime
+import yaml
 from ament_index_python.packages import get_package_share_directory
 
 
@@ -76,6 +77,12 @@ def generate_launch_description():
 
     delayed_fsm_node = TimerAction(period=5.0, actions=[fsm_node])
 
+    # Delay do CV vem do YAML (cv_startup_delay). Em simulação o padrão é 0.0.
+    with open(simulation_params, 'r') as _f:
+        _p = yaml.safe_load(_f)
+    cv_delay = float(_p.get('mission_1_H_node', {}).get('ros__parameters', {})
+                       .get('cv_startup_delay', 0.0))
+
     # Vision node
     bouncing_cv_node = Node(
         package='RDPformas',
@@ -83,6 +90,7 @@ def generate_launch_description():
         parameters=[rdpformas_params],
         output='screen'
     )
+    delayed_cv_node = TimerAction(period=cv_delay, actions=[bouncing_cv_node])
 
 
     rviz_node = Node(
@@ -98,7 +106,7 @@ def generate_launch_description():
         rviz_arg,
         bag_record,
         system_health_node,
-        bouncing_cv_node,
+        delayed_cv_node,
         delayed_fsm_node,
         rviz_node,
     ])

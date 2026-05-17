@@ -54,3 +54,13 @@ mission_1_H_node:
 
     distancia_percorrida_perpendicular: 2.5
     h_search_dwell_ticks: 40.0         # ticks por waypoint (~2s a 20Hz)
+
+    # Visualização de trajetória no RViz2 (habilitado em simulação, desabilitado em voo)
+    enable_trajectory_viz: false
+    bag_record_trajectory: false
+
+    # Atrasos (segundos) para iniciar câmera e nó de visão.
+    # Em simulação não há câmera real (Gazebo fornece), e não há contenção de CPU
+    # como no Jetson — então 0.0 (inicialização imediata) é seguro.
+    camera_startup_delay: 2.0
+    cv_startup_delay: 2.0
