@@ -125,7 +125,7 @@ public:
 
             if (detection_counter_ >= min_detections_) {
                 blackboard.set<int>("confirmed_aruco_id", last_detected_id_);
-                move_local_by_waypoint(drone_, drone_->getLocalPosition(), 0.0f);
+                move_local_constant_step(drone_, drone_->getLocalPosition(), 0.0f);
                 drone_->log("ArUco ID " + std::to_string(last_detected_id_) +
                             " confirmed after " + std::to_string(detection_counter_) +
                             " frames. Transitioning.");
@@ -163,7 +163,7 @@ public:
         blackboard.set<int>("search_aruco_leg",          current_leg_);
         blackboard.set<int>("search_aruco_leg_steps",    steps_in_current_length_);
 
-        move_local_by_waypoint(drone_, target_pos_, velocity_);
+        move_local_constant_step(drone_, target_pos_, velocity_);
         return "";
     }
 

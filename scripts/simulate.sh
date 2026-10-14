@@ -32,7 +32,8 @@ source "$ws_root/scripts/ros_env.sh"
 # verdade e pode ate sobrescrever um modelo do proprio PX4.
 #
 # (As variaveis GAZEBO_* sao do Gazebo classico e nao funcionam aqui.)
-export GZ_SIM_RESOURCE_PATH="$HOME/PX4-gazebo-models/models:${GZ_SIM_RESOURCE_PATH:-}"
+modelos="${PX4_GZ_MODELS:-$HOME/PX4-gazebo-models}"
+export GZ_SIM_RESOURCE_PATH="$modelos/models:${GZ_SIM_RESOURCE_PATH:-}"
 
 cd "$HOME/PX4-Autopilot"
 
@@ -77,7 +78,7 @@ esac
 #     ERROR [init] gz_bridge failed to start and spawn model
 #
 # ...o que faz todo mundo ir mexer no GZ_SIM_RESOURCE_PATH, quando a causa
-# quase sempre e outra: o .sdf existe em ~/PX4-gazebo-models mas nao foi
+# quase sempre e outra: o .sdf existe no repo de modelos mas nao foi
 # symlinkado para dentro do PX4. Os symlinks sao feitos uma vez; arquivo novo
 # adicionado depois nao ganha symlink sozinho.
 # ---------------------------------------------------------------------------
@@ -90,26 +91,26 @@ faltando=0
 # Criamos o link do mundo que vamos lancar, e so dele -- assim ninguem
 # precisa lembrar de refazer symlink quando um mundo novo entra no repo.
 if [[ ! -e "$px4_gz/worlds/$PX4_GZ_WORLD.sdf" \
-   && -e "$HOME/PX4-gazebo-models/worlds/$PX4_GZ_WORLD.sdf" ]]; then
+   && -e "$modelos/worlds/$PX4_GZ_WORLD.sdf" ]]; then
     echo "Criando link para o mundo '$PX4_GZ_WORLD' na arvore do PX4"
-    ln -sf "$HOME/PX4-gazebo-models/worlds/$PX4_GZ_WORLD.sdf" "$px4_gz/worlds/"
+    ln -sf "$modelos/worlds/$PX4_GZ_WORLD.sdf" "$px4_gz/worlds/"
 fi
 
 if [[ ! -e "$px4_gz/worlds/$PX4_GZ_WORLD.sdf" ]]; then
     echo "ERRO: mundo '$PX4_GZ_WORLD.sdf' nao encontrado em" >&2
     echo "      $px4_gz/worlds/" >&2
-    echo "      -> nao existe nem em ~/PX4-gazebo-models. Crie o .sdf la." >&2
+    echo "      -> nao existe nem em $modelos/worlds/. Crie o .sdf la." >&2
     faltando=1
 fi
 
 # MODELOS: basta existir no repositorio da equipe ou na arvore do PX4 --
 # os dois estao no GZ_SIM_RESOURCE_PATH. Nao ha symlink de modelo.
-if [[ ! -e "$HOME/PX4-gazebo-models/models/$PX4_SIM_MODEL" \
+if [[ ! -e "$modelos/models/$PX4_SIM_MODEL" \
    && ! -e "$px4_gz/models/$PX4_SIM_MODEL" ]]; then
     echo "ERRO: modelo '$PX4_SIM_MODEL' nao encontrado." >&2
-    echo "      Procurado em ~/PX4-gazebo-models/models/ e em" >&2
+    echo "      Procurado em $modelos/models/ e em" >&2
     echo "      $px4_gz/models/" >&2
-    echo "      -> crie o modelo em ~/PX4-gazebo-models/models/." >&2
+    echo "      -> crie o modelo em $modelos/models/." >&2
     faltando=1
 fi
 

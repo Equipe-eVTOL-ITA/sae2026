@@ -84,7 +84,7 @@ public:
 
         case Phase::DESCEND: {
             Eigen::Vector3d tgt(hold_x_, hold_y_, shape_id_altitude_);
-            if (move_local_by_waypoint(drone_, tgt, velocity_, tolerance_)) {
+            if (move_local_constant_step(drone_, tgt, velocity_, tolerance_)) {
                 drone_->log("At shape ID altitude. Waiting for shape detection...");
                 phase_ = Phase::WAIT;
             }
@@ -93,7 +93,7 @@ public:
 
         case Phase::WAIT: {
             Eigen::Vector3d tgt(hold_x_, hold_y_, shape_id_altitude_);
-            move_local_by_waypoint(drone_, tgt, 0.0f, tolerance_);
+            move_local_constant_step(drone_, tgt, 0.0f, tolerance_);
 
             bool shape_ok = false;
             if (blackboard.contains("target_calculated"))
@@ -110,7 +110,7 @@ public:
 
         case Phase::ASCEND: {
             Eigen::Vector3d tgt(hold_x_, hold_y_, return_altitude_);
-            if (move_local_by_waypoint(drone_, tgt, velocity_, tolerance_)) {
+            if (move_local_constant_step(drone_, tgt, velocity_, tolerance_)) {
                 drone_->log("Back at search altitude. Shape confirmed.");
                 return "SHAPE_FOUND";
             }

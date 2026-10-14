@@ -144,7 +144,7 @@ public:
         switch (phase_) {
 
         case Phase::MOVE_TO_SIDE1:
-            if (move_local_by_waypoint(drone_, side1_pos_, 0.5f, 0.20f)) {
+            if (move_local_constant_step(drone_, side1_pos_, 0.5f, 0.20f)) {
                 drone_->log("Lado 1 alcançado. Iniciando busca em waypoints.");
                 phase_                 = Phase::SEARCH_SIDE1;
                 waypoint_idx_          = 0;
@@ -162,7 +162,7 @@ public:
             break;
 
         case Phase::RETURN_HOME:
-            if (move_local_by_waypoint(drone_, home_pos_, 0.5f, 0.20f)) {
+            if (move_local_constant_step(drone_, home_pos_, 0.5f, 0.20f)) {
                 drone_->log("Retornou à origem. Movendo para lado 2.");
                 phase_                 = Phase::MOVE_TO_SIDE2;
                 base_detection_counter_ = 0;
@@ -170,7 +170,7 @@ public:
             break;
 
         case Phase::MOVE_TO_SIDE2:
-            if (move_local_by_waypoint(drone_, side2_pos_, 0.5f, 0.20f)) {
+            if (move_local_constant_step(drone_, side2_pos_, 0.5f, 0.20f)) {
                 drone_->log("Lado 2 alcançado. Iniciando busca em waypoints.");
                 phase_                 = Phase::SEARCH_SIDE2;
                 waypoint_idx_          = 0;
@@ -198,7 +198,7 @@ private:
     bool search_step(const std::array<Eigen::Vector3d, 4>& waypoints) {
         Eigen::Vector3d target = waypoints[waypoint_idx_];
 
-        bool at_wp = move_local_by_waypoint(drone_, target, 0.4f, 0.20f);
+        bool at_wp = move_local_constant_step(drone_, target, 0.4f, 0.20f);
         if (at_wp) {
             if (dwell_counter_ % 20 == 0) {
                 drone_->log("H-search waypoint " + std::to_string(waypoint_idx_)

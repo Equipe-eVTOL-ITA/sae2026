@@ -119,7 +119,7 @@ public:
             base_miss_counter_ = 0;
             base_detection_counter_++;
             if (base_detection_counter_ >= min_base_detections_) {
-                move_local_by_waypoint(drone_, drone_->getLocalPosition(), 0.0f);
+                move_local_constant_step(drone_, drone_->getLocalPosition(), 0.0f);
                 drone_->log("Target Base confirmed after " +
                     std::to_string(base_detection_counter_) + " frames!");
                 return "BASE_FOUND";
@@ -144,7 +144,7 @@ public:
             update_target();
         }
 
-        move_local_by_waypoint(drone_, target_pos_, 0.4f);
+        move_local_constant_step(drone_, target_pos_, 0.4f);
         return "";
     }
 
