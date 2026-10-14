@@ -14,7 +14,7 @@ from ament_index_python.packages import get_package_share_directory
 
 
 RVIZ_CONFIG = os.path.join(
-    os.path.dirname(__file__), '..', '..', '..', '..', 'sae2026', 'rviz', 'trajectory.rviz'
+    get_package_share_directory('mission_3'), 'rviz', 'trajectory.rviz'
 )
 
 def generate_launch_description():
