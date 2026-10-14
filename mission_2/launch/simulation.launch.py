@@ -13,7 +13,9 @@ import os
 import datetime
 from ament_index_python.packages import get_package_share_directory
 
-RVIZ_CONFIG = os.path.expanduser('~/evtol/dev/src/sae2026/rviz/trajectory.rviz')
+RVIZ_CONFIG = os.path.join(
+    get_package_share_directory('mission_2'), 'rviz', 'trajectory.rviz'
+)
 
 
 def generate_launch_description():
